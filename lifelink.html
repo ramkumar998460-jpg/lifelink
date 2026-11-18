@@ -1,0 +1,2949 @@
+
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LifeLink – Connecting Lives. Delivering Hope.</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS & JS for OpenStreetMap Hospital Finder -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    
+    <!-- Chart.js for Admin Analytics Dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- Supabase JS Client (Optional Live DB Integration) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        navy: {
+                            800: '#0F2942',
+                            900: '#0A192F',
+                            950: '#06101E'
+                        },
+                        medical: {
+                            50: '#F0F9FF',
+                            100: '#E0F2FE',
+                            500: '#0EA5E9',
+                            600: '#0284C7',
+                            700: '#0369A1'
+                        },
+                        emerald: {
+                            500: '#10B981',
+                            600: '#059669'
+                        },
+                        crimson: {
+                            500: '#EF4444',
+                            600: '#DC2626'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Custom Healthcare Tech Styling & Micro-Interactions */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F8FAFC;
+            color: #0F172A;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4, .font-display {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .hero-gradient {
+            background: radial-gradient(circle at 85% 20%, rgba(14, 165, 233, 0.22) 0%, transparent 45%),
+                        radial-gradient(circle at 15% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 40%),
+                        linear-gradient(135deg, #0A192F 0%, #0F2942 100%);
+        }
+        .card-hover {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(15, 41, 66, 0.08), 0 8px 10px -6px rgba(15, 41, 66, 0.04);
+        }
+        /* Leaflet Map Container Fixes */
+        #hospital-map {
+            height: 480px;
+            width: 100%;
+            z-index: 10;
+            border-radius: 0.75rem;
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+            padding: 2px;
+        }
+        /* Pulse Animation for Live Indicator */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            80%, 100% { transform: scale(2.2); opacity: 0; }
+        }
+        .pulse-dot::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            background-color: currentColor;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        /* View Transition Animation */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.28s ease-out;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Scrollbar for Code Modal */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #F1F5F9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94A3B8;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-medical-600 selection:text-white">
+
+    <!-- ==========================================
+         TOP EXHIBITION DISCLAIMER & TELEMETRY BAR
+         ========================================== -->
+    <div class="bg-navy-900 text-slate-200 text-xs py-2 px-4 border-b border-slate-800">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    EXHIBITION DEMO MODE
+                </span>
+                <span class="hidden sm:inline text-slate-300">
+                    Synthetic sample records only. Does <strong>not</strong> dispatch emergency responders or claim live hospital bed/ICU capacity.
+                </span>
+            </div>
+            <div class="flex items-center gap-3 ml-auto">
+                <span class="text-crimson-400 font-semibold flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                    Official Emergency: <strong>112</strong> / Ambulance: <strong>108</strong>
+                </span>
+                <button onclick="openModal('db-config-modal')" id="db-status-btn" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 transition cursor-pointer" title="Configure Supabase or Demo Storage">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span id="db-mode-label">DB: Exhibition LocalStorage</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         RESPONSIVE NAVIGATION BAR
+         ========================================== -->
+    <header class="sticky top-0 z-40 glass-nav border-b border-slate-200/80 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand Logo -->
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-navy-900 to-medical-600 flex items-center justify-center text-white shadow-md shadow-medical-600/20">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h2l1.5-3 2 6 1.5-3h2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-display font-extrabold text-xl tracking-tight text-navy-900">Life<span class="text-medical-600">Link</span></span>
+                            <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-medical-50 text-medical-700 font-semibold border border-medical-200">v2.4</span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 hidden sm:block leading-none">Connecting Lives. Delivering Hope.</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Navigation Links (Simulating Multi-File Pages) -->
+                <nav class="hidden lg:flex items-center gap-1">
+                    <button onclick="navigateTo('home')" data-nav="home" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-medical-600 hover:bg-slate-100/80 transition">
+                        Home
+                    </button>
+                    <button onclick="navigateTo('hospitals')" data-nav="hospitals" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-medical-600 hover:bg-slate-100/80 transition flex items-center gap-1">
+                        <span>Hospital Finder</span>
+                    </button>
+                    <button onclick="navigateTo('blood-donation')" data-nav="blood-donation" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-medical-600 hover:bg-slate-100/80 transition flex items-center gap-1">
+                        <span>Blood Donation</span>
+                    </button>
+                    <button onclick="navigateTo('assistance')" data-nav="assistance" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-medical-600 hover:bg-slate-100/80 transition flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-crimson-500"></span>
+                        <span>Emergency Assistance</span>
+                    </button>
+                    <button onclick="navigateTo('dashboard')" data-nav="dashboard" id="nav-user-dashboard" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-medical-600 hover:bg-slate-100/80 transition">
+                        My Dashboard
+                    </button>
+                    <button onclick="navigateTo('admin')" data-nav="admin" id="nav-admin-dashboard" class="nav-link px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:text-medical-600 hover:bg-slate-100/80 transition flex items-center gap-1">
+                        <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Admin Panel</span>
+                    </button>
+                </nav>
+
+                <!-- Right Action Controls -->
+                <div class="hidden md:flex items-center gap-2.5">
+                    <!-- Multi-File Architecture & SQL Blueprint Button -->
+                    <button onclick="openModal('code-explorer-modal')" class="px-3 py-2 rounded-lg text-xs font-mono font-semibold bg-slate-100 hover:bg-slate-200 text-navy-900 border border-slate-300 transition flex items-center gap-1.5" title="View Multi-File Structure, Supabase SQL Schema & README">
+                        <svg class="w-4 h-4 text-medical-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+                        <span>Files & SQL</span>
+                    </button>
+
+                    <!-- Auth Status Area -->
+                    <div id="auth-guest-actions" class="flex items-center gap-2">
+                        <button onclick="navigateTo('login')" class="px-3.5 py-2 rounded-lg text-sm font-semibold text-navy-900 hover:bg-slate-100 transition">
+                            Log In
+                        </button>
+                        <button onclick="navigateTo('register')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-navy-900 hover:bg-navy-800 text-white shadow-sm transition">
+                            Register
+                        </button>
+                    </div>
+
+                    <div id="auth-user-actions" class="hidden items-center gap-2">
+                        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200">
+                            <div id="nav-user-avatar" class="w-7 h-7 rounded-full bg-medical-600 text-white font-bold text-xs flex items-center justify-center">
+                                U
+                            </div>
+                            <div class="text-left">
+                                <p id="nav-user-name" class="text-xs font-bold text-navy-900 leading-none">User</p>
+                                <p id="nav-user-role" class="text-[10px] font-medium text-medical-600 uppercase tracking-wider mt-0.5">Member</p>
+                            </div>
+                        </div>
+                        <button onclick="handleLogout()" class="p-2 rounded-lg text-slate-500 hover:text-crimson-600 hover:bg-red-50 transition" title="Log Out">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mobile Hamburger Button -->
+                <div class="flex items-center gap-2 lg:hidden">
+                    <button onclick="openModal('code-explorer-modal')" class="p-2 rounded-lg text-xs font-mono bg-slate-100 text-navy-900 border border-slate-300">
+                        SQL/Files
+                    </button>
+                    <button onclick="toggleMobileMenu()" class="p-2 rounded-lg text-slate-700 hover:bg-slate-100 focus:outline-none" aria-label="Toggle Menu">
+                        <svg id="mobile-menu-icon" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Menu Drawer -->
+        <div id="mobile-menu" class="hidden lg:hidden bg-white border-b border-slate-200 px-4 pt-2 pb-4 space-y-1.5 shadow-lg">
+            <button onclick="navigateTo('home'); toggleMobileMenu()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-800 hover:bg-slate-100">Home (index.html)</button>
+            <button onclick="navigateTo('hospitals'); toggleMobileMenu()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-800 hover:bg-slate-100">Hospital Finder (hospitals.html)</button>
+            <button onclick="navigateTo('blood-donation'); toggleMobileMenu()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-800 hover:bg-slate-100">Blood Donation (blood-donation.html)</button>
+            <button onclick="navigateTo('assistance'); toggleMobileMenu()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-crimson-600 bg-red-50/60 hover:bg-red-100">Emergency Assistance (assistance.html)</button>
+            <button onclick="navigateTo('dashboard'); toggleMobileMenu()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-slate-800 hover:bg-slate-100">User Dashboard (dashboard.html)</button>
+            <button onclick="navigateTo('admin'); toggleMobileMenu()" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100">Admin Dashboard (admin.html)</button>
+            <div class="pt-2 border-t border-slate-200 flex items-center gap-2" id="mobile-auth-buttons">
+                <button onclick="navigateTo('login'); toggleMobileMenu()" class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-center border border-slate-300 text-navy-900">Log In</button>
+                <button onclick="navigateTo('register'); toggleMobileMenu()" class="flex-1 py-2.5 rounded-lg text-sm font-semibold text-center bg-navy-900 text-white">Register</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         SIMULATED URL / FILE PATH BREADCRUMB BAR
+         ========================================== -->
+    <div class="bg-slate-100 border-b border-slate-200/80 py-1.5 px-4 text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2 font-mono">
+                <span class="text-slate-400">lifelink-platform/</span>
+                <span id="active-file-indicator" class="text-medical-700 font-semibold bg-medical-50 px-2 py-0.5 rounded border border-medical-200">index.html</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <span class="hidden md:inline text-slate-500">Quick Exhibition Role Switch:</span>
+                <button onclick="quickDemoLogin('user')" class="text-[11px] font-medium px-2 py-0.5 rounded bg-white border border-slate-300 text-slate-700 hover:border-medical-500 hover:text-medical-600 transition">Demo Citizen</button>
+                <button onclick="quickDemoLogin('admin')" class="text-[11px] font-medium px-2 py-0.5 rounded bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 transition">Demo Admin</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MAIN CONTENT CONTAINER (MULTI-VIEW ROUTER)
+         ========================================== -->
+    <main class="flex-grow">
+
+        <!-- =====================================================
+             VIEW 1: HOMEPAGE (index.html)
+             ===================================================== -->
+        <section id="view-home" class="view-section active">
+            <!-- Hero Section -->
+            <div class="hero-gradient text-white relative overflow-hidden">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24 relative z-10">
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                        <!-- Left Column: Headline & CTAs -->
+                        <div class="lg:col-span-7 space-y-6">
+                            <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 backdrop-blur-sm">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 relative pulse-dot"></span>
+                                <span class="text-xs font-semibold tracking-wide uppercase text-sky-200">Community-Powered Emergency Resource Network</span>
+                            </div>
+                            <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.12]">
+                                Connecting Lives.<br/>
+                                <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-medical-400 to-emerald-300">Delivering Hope.</span>
+                            </h1>
+                            <p class="text-base sm:text-lg text-slate-300 max-w-2xl leading-relaxed">
+                                LifeLink bridges citizens with verified directory information for nearby hospitals, privacy-first community blood donors, rapid emergency helplines, and tracked community assistance requests.
+                            </p>
+                            <div class="flex flex-wrap items-center gap-4 pt-2">
+                                <button onclick="navigateTo('assistance')" class="px-6 py-3.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold shadow-lg shadow-crimson-600/30 transition flex items-center gap-2.5 text-base cursor-pointer">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                    <span>Get Assistance</span>
+                                </button>
+                                <button onclick="navigateTo('hospitals')" class="px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold border border-white/20 backdrop-blur-sm transition flex items-center gap-2 text-base cursor-pointer">
+                                    <svg class="w-5 h-5 text-sky-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                    <span>Explore Resources</span>
+                                </button>
+                            </div>
+                            <div class="pt-4 grid grid-cols-3 gap-4 border-t border-white/10 max-w-lg text-xs text-slate-300">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <span>OpenStreetMap GIS</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Donor Privacy Shield</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                    <span>Live Request Tracking</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Interactive Command Card -->
+                        <div class="lg:col-span-5">
+                            <div class="bg-white/95 text-slate-900 rounded-2xl p-6 shadow-2xl border border-white/20 space-y-5">
+                                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                                    <div>
+                                        <span class="text-[11px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-medical-50 text-medical-700 font-semibold">Rapid Hub</span>
+                                        <h3 class="font-display font-bold text-lg text-navy-900 mt-1">Emergency Resource Locator</h3>
+                                    </div>
+                                    <div class="w-10 h-10 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </div>
+                                </div>
+
+                                <!-- Quick Track Reference ID -->
+                                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200/80">
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Track Assistance Request by Reference ID</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" id="hero-track-input" placeholder="e.g. LL-2026-8492" class="flex-1 px-3 py-2 text-sm font-mono bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                        <button onclick="quickTrackFromHero()" class="px-4 py-2 bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold rounded-lg transition">
+                                            Track
+                                        </button>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500 mt-1.5">Try sample ID: <button onclick="document.getElementById('hero-track-input').value='LL-2026-8492'; quickTrackFromHero()" class="font-mono text-medical-600 underline">LL-2026-8492</button></p>
+                                </div>
+
+                                <!-- Quick Module Shortcuts -->
+                                <div class="grid grid-cols-2 gap-3">
+                                    <button onclick="navigateTo('hospitals')" class="p-3.5 rounded-xl border border-slate-200 hover:border-medical-500 hover:bg-medical-50/40 text-left transition group">
+                                        <div class="w-8 h-8 rounded-lg bg-medical-100 text-medical-700 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                        </div>
+                                        <p class="font-display font-bold text-sm text-navy-900">Find Hospitals</p>
+                                        <p class="text-xs text-slate-500 mt-0.5"><span id="hero-stat-hospitals">6</span> Sample Records</p>
+                                    </button>
+                                    <button onclick="navigateTo('blood-donation')" class="p-3.5 rounded-xl border border-slate-200 hover:border-crimson-500 hover:bg-red-50/40 text-left transition group">
+                                        <div class="w-8 h-8 rounded-lg bg-red-100 text-crimson-600 flex items-center justify-center mb-2 group-hover:scale-110 transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                                        </div>
+                                        <p class="font-display font-bold text-sm text-navy-900">Blood Donors</p>
+                                        <p class="text-xs text-slate-500 mt-0.5"><span id="hero-stat-donors">10</span> Registered</p>
+                                    </button>
+                                </div>
+
+                                <!-- Ethical Notice -->
+                                <div class="p-3 rounded-lg bg-amber-50 border border-amber-200/80 text-[11px] text-amber-900 flex items-start gap-2">
+                                    <svg class="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span><strong>Exhibition Notice:</strong> For life-threatening emergencies, always dial <strong>112</strong> or <strong>108</strong> immediately.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Quick-Dial Resources Section -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20">
+                <div class="bg-white rounded-2xl shadow-xl border border-slate-200/90 p-6">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider text-crimson-600">Official Public Helplines</span>
+                            <h2 class="font-display text-xl font-bold text-navy-900">National Emergency Contact Directory</h2>
+                        </div>
+                        <p class="text-xs text-slate-500">Tap any helpline card to initiate a direct call on mobile devices.</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+                        <a href="tel:112" class="p-4 rounded-xl bg-red-50/70 hover:bg-red-100/80 border border-red-200 transition flex items-center gap-3.5 group">
+                            <div class="w-11 h-11 rounded-xl bg-crimson-600 text-white font-display font-extrabold text-lg flex items-center justify-center shrink-0 shadow-sm">112</div>
+                            <div>
+                                <p class="font-display font-bold text-sm text-navy-900 group-hover:text-crimson-600">National Emergency</p>
+                                <p class="text-xs text-slate-600">All-in-One ERSS</p>
+                            </div>
+                        </a>
+                        <a href="tel:108" class="p-4 rounded-xl bg-sky-50/70 hover:bg-sky-100/80 border border-sky-200 transition flex items-center gap-3.5 group">
+                            <div class="w-11 h-11 rounded-xl bg-medical-600 text-white font-display font-extrabold text-lg flex items-center justify-center shrink-0 shadow-sm">108</div>
+                            <div>
+                                <p class="font-display font-bold text-sm text-navy-900 group-hover:text-medical-600">Ambulance Service</p>
+                                <p class="text-xs text-slate-600">Medical Response</p>
+                            </div>
+                        </a>
+                        <a href="tel:102" class="p-4 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/80 border border-emerald-200 transition flex items-center gap-3.5 group">
+                            <div class="w-11 h-11 rounded-xl bg-emerald-600 text-white font-display font-extrabold text-lg flex items-center justify-center shrink-0 shadow-sm">102</div>
+                            <div>
+                                <p class="font-display font-bold text-sm text-navy-900 group-hover:text-emerald-600">Maternal & Child</p>
+                                <p class="text-xs text-slate-600">Patient Transport</p>
+                            </div>
+                        </a>
+                        <a href="tel:104" class="p-4 rounded-xl bg-purple-50/70 hover:bg-purple-100/80 border border-purple-200 transition flex items-center gap-3.5 group">
+                            <div class="w-11 h-11 rounded-xl bg-purple-600 text-white font-display font-extrabold text-lg flex items-center justify-center shrink-0 shadow-sm">104</div>
+                            <div>
+                                <p class="font-display font-bold text-sm text-navy-900 group-hover:text-purple-600">Health & Blood Info</p>
+                                <p class="text-xs text-slate-600">Medical Advice Line</p>
+                            </div>
+                        </a>
+                        <a href="tel:101" class="p-4 rounded-xl bg-amber-50/70 hover:bg-amber-100/80 border border-amber-200 transition flex items-center gap-3.5 group">
+                            <div class="w-11 h-11 rounded-xl bg-amber-600 text-white font-display font-extrabold text-lg flex items-center justify-center shrink-0 shadow-sm">101</div>
+                            <div>
+                                <p class="font-display font-bold text-sm text-navy-900 group-hover:text-amber-600">Fire & Rescue</p>
+                                <p class="text-xs text-slate-600">Disaster Response</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hospital Finder Preview & Blood Donation Preview Section -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <span class="text-xs font-bold uppercase tracking-widest text-medical-600 bg-medical-50 px-3 py-1 rounded-full border border-medical-200">Core Platform Modules</span>
+                    <h2 class="font-display text-3xl sm:text-4xl font-extrabold text-navy-900 mt-3">Designed for Clarity When Seconds Count</h2>
+                    <p class="text-slate-600 mt-2 text-sm sm:text-base">Explore verified directory structures, interactive OpenStreetMap hospital coordinates, and consent-protected donor registries.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Hospital Finder Preview Card -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col justify-between card-hover">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200">Module 01 • GIS Directory</span>
+                                <span class="text-xs font-mono text-slate-400">hospitals.html</span>
+                            </div>
+                            <h3 class="font-display text-2xl font-bold text-navy-900">Interactive Hospital Finder</h3>
+                            <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+                                Search sample hospitals by name, area, or specialty category. View exact pins on an interactive OpenStreetMap canvas and launch turn-by-turn directions.
+                            </p>
+                            <div id="home-hospital-preview-list" class="mt-6 space-y-3">
+                                <!-- Populated dynamically from state -->
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-xs text-slate-500">Includes ethical non-capacity disclaimer</span>
+                            <button onclick="navigateTo('hospitals')" class="inline-flex items-center gap-1.5 text-sm font-bold text-medical-600 hover:text-medical-700">
+                                <span>Open Hospital Map</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Blood Donation Preview Card -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 flex flex-col justify-between card-hover">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-50 text-crimson-600 border border-red-200">Module 02 • Privacy-First Registry</span>
+                                <span class="text-xs font-mono text-slate-400">blood-donation.html</span>
+                            </div>
+                            <h3 class="font-display text-2xl font-bold text-navy-900">Community Blood Donor Network</h3>
+                            <p class="text-slate-600 text-sm mt-2 leading-relaxed">
+                                Filter registered volunteer blood donors by blood group and locality. Donor phone numbers and emails are strictly masked behind a consent-based relay system.
+                            </p>
+                            <!-- Quick Blood Group Pills -->
+                            <div class="mt-6">
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Quick Filter by Blood Group:</p>
+                                <div class="grid grid-cols-4 sm:grid-cols-8 gap-2">
+                                    <button onclick="jumpToBloodGroup('A+')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">A+</button>
+                                    <button onclick="jumpToBloodGroup('A-')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">A-</button>
+                                    <button onclick="jumpToBloodGroup('B+')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">B+</button>
+                                    <button onclick="jumpToBloodGroup('B-')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">B-</button>
+                                    <button onclick="jumpToBloodGroup('O+')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">O+</button>
+                                    <button onclick="jumpToBloodGroup('O-')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">O-</button>
+                                    <button onclick="jumpToBloodGroup('AB+')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">AB+</button>
+                                    <button onclick="jumpToBloodGroup('AB-')" class="py-2.5 rounded-xl font-display font-bold text-sm bg-red-50 hover:bg-crimson-600 text-crimson-600 hover:text-white border border-red-200 transition">AB-</button>
+                                </div>
+                            </div>
+                            <div class="mt-5 p-4 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-bold text-navy-900">Want to save lives in your city?</p>
+                                    <p class="text-xs text-slate-500">Register as a verified volunteer donor in 60 seconds.</p>
+                                </div>
+                                <button onclick="navigateTo('blood-donation', 'register-donor-card')" class="px-4 py-2 rounded-lg bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-semibold transition shrink-0">
+                                    Become a Donor
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-xs text-slate-500">Zero public PII exposure • RLS Protected</span>
+                            <button onclick="navigateTo('blood-donation')" class="inline-flex items-center gap-1.5 text-sm font-bold text-crimson-600 hover:text-crimson-700">
+                                <span>Explore Donor Directory</span>
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- How LifeLink Works (4-Step Workflow) -->
+            <div class="bg-white border-y border-slate-200/80 py-16">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center max-w-2xl mx-auto mb-12">
+                        <span class="text-xs font-bold uppercase tracking-widest text-emerald-600">Platform Architecture</span>
+                        <h2 class="font-display text-3xl font-extrabold text-navy-900 mt-2">How LifeLink Works</h2>
+                        <p class="text-slate-600 text-sm mt-2">A streamlined 4-step workflow connecting citizens with community support and verified directory information.</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative">
+                            <span class="w-9 h-9 rounded-xl bg-navy-900 text-white font-mono font-bold text-sm flex items-center justify-center mb-4">01</span>
+                            <h3 class="font-display font-bold text-lg text-navy-900">Locate Resources</h3>
+                            <p class="text-xs text-slate-600 mt-2 leading-relaxed">Search the interactive hospital finder or blood donor directory by locality and category without needing an account.</p>
+                        </div>
+                        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative">
+                            <span class="w-9 h-9 rounded-xl bg-medical-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4">02</span>
+                            <h3 class="font-display font-bold text-lg text-navy-900">Submit Assistance</h3>
+                            <p class="text-xs text-slate-600 mt-2 leading-relaxed">Log a community support request (medical transport info, blood coordination, volunteer check-in) with full validation.</p>
+                        </div>
+                        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative">
+                            <span class="w-9 h-9 rounded-xl bg-emerald-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4">03</span>
+                            <h3 class="font-display font-bold text-lg text-navy-900">Get Reference ID</h3>
+                            <p class="text-xs text-slate-600 mt-2 leading-relaxed">Receive a unique cryptographic Reference ID (e.g., <code class="font-mono text-navy-900">LL-2026-XXXX</code>) stored in Supabase/LocalStorage.</p>
+                        </div>
+                        <div class="p-6 rounded-2xl bg-slate-50 border border-slate-200/80 relative">
+                            <span class="w-9 h-9 rounded-xl bg-amber-600 text-white font-mono font-bold text-sm flex items-center justify-center mb-4">04</span>
+                            <h3 class="font-display font-bold text-lg text-navy-900">Track & Coordinate</h3>
+                            <p class="text-xs text-slate-600 mt-2 leading-relaxed">Monitor real-time status updates via your personal User Dashboard as coordinators review and resolve requests.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Community Impact Statistics Banner -->
+            <div class="bg-navy-900 text-white py-14">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+                        <div>
+                            <p class="font-display text-3xl sm:text-4xl font-extrabold text-sky-400" id="metric-hospitals">6</p>
+                            <p class="text-xs sm:text-sm font-medium text-slate-300 mt-1">Mapped Exhibition Hospitals</p>
+                        </div>
+                        <div>
+                            <p class="font-display text-3xl sm:text-4xl font-extrabold text-emerald-400" id="metric-donors">10</p>
+                            <p class="text-xs sm:text-sm font-medium text-slate-300 mt-1">Privacy-Shielded Donors</p>
+                        </div>
+                        <div>
+                            <p class="font-display text-3xl sm:text-4xl font-extrabold text-amber-400" id="metric-requests">5</p>
+                            <p class="text-xs sm:text-sm font-medium text-slate-300 mt-1">Tracked Support Requests</p>
+                        </div>
+                        <div>
+                            <p class="font-display text-3xl sm:text-4xl font-extrabold text-white">100%</p>
+                            <p class="text-xs sm:text-sm font-medium text-slate-300 mt-1">RLS & Consent Protected</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Frequently Asked Questions & Contact Section -->
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    <!-- FAQ Accordion (7 cols) -->
+                    <div class="lg:col-span-7 space-y-4">
+                        <span class="text-xs font-bold uppercase tracking-widest text-medical-600">Transparency & Safety</span>
+                        <h2 class="font-display text-2xl sm:text-3xl font-extrabold text-navy-900">Frequently Asked Questions</h2>
+                        <div class="space-y-3 pt-2" id="faq-container">
+                            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <button onclick="toggleFaq(0)" class="w-full px-5 py-4 text-left flex items-center justify-between font-display font-bold text-sm text-navy-900 hover:bg-slate-50">
+                                    <span>Does LifeLink replace official 112 / 108 emergency services?</span>
+                                    <span id="faq-icon-0" class="text-medical-600 font-mono text-lg">+</span>
+                                </button>
+                                <div id="faq-body-0" class="px-5 pb-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                    <strong>No.</strong> LifeLink is an informational resource directory and community coordination demonstration platform. In any life-threatening medical, fire, or police emergency, always dial <strong>112</strong> or <strong>108</strong> immediately.
+                                </div>
+                            </div>
+                            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <button onclick="toggleFaq(1)" class="w-full px-5 py-4 text-left flex items-center justify-between font-display font-bold text-sm text-navy-900 hover:bg-slate-50">
+                                    <span>Does the Hospital Finder claim live ICU or bed availability?</span>
+                                    <span id="faq-icon-1" class="text-medical-600 font-mono text-lg">+</span>
+                                </button>
+                                <div id="faq-body-1" class="hidden px-5 pb-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                    Never. In compliance with healthcare safety standards, LifeLink never fabricates or claims real-time emergency bed or ICU capacity. All records are clearly marked as <code class="font-mono">[SAMPLE EXHIBITION RECORD]</code> providing location and general inquiry contacts.
+                                </div>
+                            </div>
+                            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <button onclick="toggleFaq(2)" class="w-full px-5 py-4 text-left flex items-center justify-between font-display font-bold text-sm text-navy-900 hover:bg-slate-50">
+                                    <span>How is blood donor contact information protected?</span>
+                                    <span id="faq-icon-2" class="text-medical-600 font-mono text-lg">+</span>
+                                </button>
+                                <div id="faq-body-2" class="hidden px-5 pb-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                    Donor phone numbers and email addresses are never exposed in public HTML or unauthenticated API responses. Users see anonymized Donor IDs and submit a verified Contact Relay Request so the donor can choose to respond.
+                                </div>
+                            </div>
+                            <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <button onclick="toggleFaq(3)" class="w-full px-5 py-4 text-left flex items-center justify-between font-display font-bold text-sm text-navy-900 hover:bg-slate-50">
+                                    <span>How does the dual-mode Supabase + Exhibition Demo database work?</span>
+                                    <span id="faq-icon-3" class="text-medical-600 font-mono text-lg">+</span>
+                                </button>
+                                <div id="faq-body-3" class="hidden px-5 pb-4 text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                    By default, the platform boots with pre-seeded synthetic records in browser <code class="font-mono">localStorage</code> so it works reliably offline at an exhibition. You can also connect a live Supabase project URL and Anon Key anytime via the top-right <strong>DB Config</strong> button.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact & Community Feedback Form (5 cols) -->
+                    <div class="lg:col-span-5">
+                        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+                            <span class="text-xs font-bold uppercase tracking-widest text-emerald-600">Get In Touch</span>
+                            <h3 class="font-display text-2xl font-bold text-navy-900 mt-1">Community & Exhibition Inquiry</h3>
+                            <p class="text-xs text-slate-500 mt-1 mb-5">Have questions about integrating your college NSS unit or hospital directory?</p>
+                            <form id="contact-form" onsubmit="handleContactSubmit(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Your Name *</label>
+                                    <input type="text" id="contact-name" required placeholder="Dr. Ananya Sharma" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+                                    <input type="email" id="contact-email" required placeholder="ananya@example.org" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Message / Exhibition Feedback *</label>
+                                    <textarea id="contact-message" rows="3" required placeholder="Share feedback or partnership details..." class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500"></textarea>
+                                </div>
+                                <button type="submit" class="w-full py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-sm shadow-sm transition cursor-pointer">
+                                    Send Inquiry Message
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 2: HOSPITAL FINDER (hospitals.html)
+             ===================================================== -->
+        <section id="view-hospitals" class="view-section py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                <!-- Header & Ethical Non-Capacity Banner -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200">GIS Directory Module</span>
+                                <span class="text-xs font-mono text-slate-400">hospitals.html</span>
+                            </div>
+                            <h1 class="font-display text-2xl sm:text-3xl font-extrabold text-navy-900 mt-1">Interactive Hospital Finder</h1>
+                            <p class="text-sm text-slate-600 mt-1">Discover sample hospital locations, general inquiry lines, and specialty categories on OpenStreetMap.</p>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-amber-50 border border-amber-200 max-w-md text-xs text-amber-900">
+                            <strong>Important Exhibition Disclaimer:</strong> Records below are labeled <span class="font-mono font-semibold">[SAMPLE EXHIBITION RECORD]</span>. LifeLink does <u>not</u> claim real-time bed, ICU, or emergency room capacity.
+                        </div>
+                    </div>
+
+                    <!-- Search and Filter Controls -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-100">
+                        <div class="sm:col-span-2">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Search Hospital Name or Address</label>
+                            <div class="relative">
+                                <input type="text" id="hospital-search-input" oninput="renderHospitals()" placeholder="Search e.g. Horizon, Lilavati, Santacruz..." class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Filter by Area / Locality</label>
+                            <select id="hospital-area-filter" onchange="renderHospitals()" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                <option value="ALL">All Mumbai Localities</option>
+                                <option value="Mahalaxmi">Mahalaxmi</option>
+                                <option value="Santacruz West">Santacruz West</option>
+                                <option value="Bandra West">Bandra West</option>
+                                <option value="Lower Parel">Lower Parel</option>
+                                <option value="Andheri West">Andheri West</option>
+                                <option value="Khar West">Khar West</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Hospital Category</label>
+                            <select id="hospital-category-filter" onchange="renderHospitals()" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                <option value="ALL">All Categories</option>
+                                <option value="Multi-Specialty">Multi-Specialty</option>
+                                <option value="General & Charitable">General & Charitable</option>
+                                <option value="Cardiac & Trauma">Cardiac & Trauma</option>
+                                <option value="Maternity & Pediatric">Maternity & Pediatric</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map + Hospital Cards Split Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <!-- Interactive Leaflet Map (5 Cols on Desktop) -->
+                    <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm lg:sticky lg:top-20">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-medical-600"></span>
+                                <h3 class="font-display font-bold text-sm text-navy-900">OpenStreetMap Live View</h3>
+                            </div>
+                            <button onclick="resetHospitalMapBounds()" class="text-xs font-semibold text-medical-600 hover:underline">Reset Map Zoom</button>
+                        </div>
+                        <div id="hospital-map" class="border border-slate-200"></div>
+                        <p class="text-[11px] text-slate-500 mt-2.5 flex items-center justify-between">
+                            <span>Click any marker or card "Focus on Map" button.</span>
+                            <span id="hospital-count-badge" class="font-mono font-semibold text-navy-900">6 shown</span>
+                        </p>
+                    </div>
+
+                    <!-- Hospital Cards List (7 Cols on Desktop) -->
+                    <div class="lg:col-span-7 space-y-4" id="hospital-cards-container">
+                        <!-- Dynamically populated by renderHospitals() -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 3: BLOOD DONATION MODULE (blood-donation.html)
+             ===================================================== -->
+        <section id="view-blood-donation" class="view-section py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                <!-- Header Banner -->
+                <div class="bg-gradient-to-r from-navy-900 via-navy-800 to-crimson-600 rounded-2xl p-6 sm:p-8 text-white shadow-lg">
+                    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                        <div class="space-y-2 max-w-2xl">
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-xs font-semibold">
+                                <span>Privacy-First Blood Registry • Synthetic Exhibition Data</span>
+                            </div>
+                            <h1 class="font-display text-2xl sm:text-4xl font-extrabold">Community Blood Donation Network</h1>
+                            <p class="text-slate-200 text-sm leading-relaxed">
+                                Search volunteer blood donors by group and locality. To protect citizen privacy, personal phone numbers and emails are strictly masked and never publicly exposed without explicit donor consent.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-3 shrink-0">
+                            <button onclick="document.getElementById('register-donor-card').scrollIntoView({behavior:'smooth'})" class="px-5 py-3 rounded-xl bg-white text-navy-900 hover:bg-slate-100 font-bold text-sm shadow transition cursor-pointer">
+                                + Register as Donor
+                            </button>
+                            <button onclick="openModal('blood-request-modal')" class="px-5 py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white border border-white/20 font-bold text-sm shadow transition cursor-pointer">
+                                Submit Blood Request
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Grid: Directory (7 Cols) + Donor Registration & Awareness (5 Cols) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Left 7 Cols: Searchable Donor Directory -->
+                    <div class="lg:col-span-7 space-y-5">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h2 class="font-display text-lg font-bold text-navy-900">Search Registered Donors</h2>
+                                <span id="donor-count-badge" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-red-50 text-crimson-600 border border-red-200">10 Donors</span>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Blood Group</label>
+                                    <select id="donor-group-filter" onchange="renderDonors()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-crimson-500">
+                                        <option value="ALL">All Blood Groups</option>
+                                        <option value="A+">A+</option>
+                                        <option value="A-">A-</option>
+                                        <option value="B+">B+</option>
+                                        <option value="B-">B-</option>
+                                        <option value="O+">O+</option>
+                                        <option value="O-">O- (Universal Donor)</option>
+                                        <option value="AB+">AB+ (Universal Recipient)</option>
+                                        <option value="AB-">AB-</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">City / Area</label>
+                                    <input type="text" id="donor-location-filter" oninput="renderDonors()" placeholder="e.g. Bandra, Andheri, Dadar..." class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-crimson-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-600 mb-1">Availability</label>
+                                    <select id="donor-availability-filter" onchange="renderDonors()" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-crimson-500">
+                                        <option value="ALL">All Statuses</option>
+                                        <option value="Available">Available Now</option>
+                                        <option value="Recent Donor">Recently Donated</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Donor Cards Container -->
+                        <div id="donor-cards-container" class="space-y-3">
+                            <!-- Populated by renderDonors() -->
+                        </div>
+                    </div>
+
+                    <!-- Right 5 Cols: Donor Registration Form & Awareness Info -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <!-- Donor Registration Card -->
+                        <div id="register-donor-card" class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Privacy Protected</span>
+                                <span class="text-xs font-mono text-slate-400">Table: donors</span>
+                            </div>
+                            <h3 class="font-display text-xl font-bold text-navy-900">Register as a Volunteer Donor</h3>
+                            <p class="text-xs text-slate-500 mt-1 mb-5">Your phone number is stored privately and never displayed publicly on the directory.</p>
+
+                            <form id="donor-registration-form" onsubmit="handleDonorRegister(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name (Displayed as Masked Alias) *</label>
+                                    <input type="text" id="donor-name" required placeholder="e.g. Rohan Deshmukh" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Blood Group *</label>
+                                        <select id="donor-blood-group" required class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                            <option value="">Select Group</option>
+                                            <option value="A+">A+</option>
+                                            <option value="A-">A-</option>
+                                            <option value="B+">B+</option>
+                                            <option value="B-">B-</option>
+                                            <option value="O+">O+</option>
+                                            <option value="O-">O-</option>
+                                            <option value="AB+">AB+</option>
+                                            <option value="AB-">AB-</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Age (18–65) *</label>
+                                        <input type="number" id="donor-age" min="18" max="65" required placeholder="24" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">City *</label>
+                                        <input type="text" id="donor-city" required value="Mumbai" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality *</label>
+                                        <input type="text" id="donor-area" required placeholder="e.g. Santacruz West" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Private Contact Phone (Hidden from Public) *</label>
+                                    <input type="tel" id="donor-phone" required pattern="[0-9+\-\s]{10,15}" placeholder="+91 98XXXXXXXX" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                                <div class="flex items-start gap-2.5 pt-1">
+                                    <input type="checkbox" id="donor-consent" required class="mt-1 rounded border-slate-300 text-medical-600 focus:ring-medical-500">
+                                    <label for="donor-consent" class="text-xs text-slate-600 leading-relaxed">
+                                        I consent to receive verified blood request relays through LifeLink and confirm that this is a voluntary community registration.
+                                    </label>
+                                </div>
+                                <button type="submit" class="w-full py-3 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-sm shadow-sm transition cursor-pointer">
+                                    Register Donor Profile
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Blood Donation Awareness & Compatibility Card -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                            <h3 class="font-display font-bold text-lg text-navy-900">Blood Donation Awareness Guide</h3>
+                            <ul class="space-y-2.5 text-xs text-slate-600">
+                                <li class="flex items-start gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center shrink-0">1</span>
+                                    <span><strong>Eligibility:</strong> Healthy adults aged 18–65 weighing at least 45 kg with hemoglobin ≥ 12.5 g/dL.</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center shrink-0">2</span>
+                                    <span><strong>Interval:</strong> Whole blood can be safely donated every 90 days (3 months) for men and 120 days for women.</span>
+                                </li>
+                                <li class="flex items-start gap-2">
+                                    <span class="w-5 h-5 rounded-full bg-emerald-50 text-emerald-600 font-bold flex items-center justify-center shrink-0">3</span>
+                                    <span><strong>Universal Groups:</strong> <strong>O-</strong> is the universal red-cell donor; <strong>AB+</strong> is the universal red-cell recipient.</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 4: EMERGENCY ASSISTANCE MODULE (assistance.html)
+             ===================================================== -->
+        <section id="view-assistance" class="view-section py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                <!-- Critical Non-Replacement Disclaimer Banner -->
+                <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-10 h-10 rounded-xl bg-crimson-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <div>
+                            <h2 class="font-display font-bold text-base text-red-950">IMPORTANT EXHIBITION DEMONSTRATION NOTICE</h2>
+                            <p class="text-xs text-red-800 mt-0.5 leading-relaxed">
+                                This platform is an educational demonstration and <strong>does not dispatch emergency responders, ambulances, or replace official emergency services</strong>. For real medical or safety emergencies, dial <strong>112</strong> or <strong>108</strong> immediately.
+                            </p>
+                        </div>
+                    </div>
+                    <a href="tel:112" class="px-4 py-2.5 rounded-xl bg-crimson-600 hover:bg-crimson-700 text-white font-bold text-xs shrink-0 shadow-sm">
+                        Dial 112 Now
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                    <!-- Left 7 Cols: Submit Assistance Request Form -->
+                    <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200">Community Support Intake</span>
+                            <span class="text-xs font-mono text-slate-400">assistance.html</span>
+                        </div>
+                        <h1 class="font-display text-2xl font-extrabold text-navy-900">Submit an Assistance Request</h1>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1 mb-6">Complete the validated form below to log a request in the database and receive a unique tracking Reference ID.</p>
+
+                        <form id="assistance-request-form" onsubmit="handleAssistanceSubmit(event)" class="space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                                    <input type="text" id="req-name" required placeholder="e.g. Siddharth Mehta" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Contact Information (Phone / Email) *</label>
+                                    <input type="text" id="req-contact" required placeholder="+91 98201 XXXXX" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Assistance Category *</label>
+                                    <select id="req-category" required class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                        <option value="">Select Category</option>
+                                        <option value="Medical Transport Guidance">Medical Transport Guidance</option>
+                                        <option value="Blood Requirement Support">Blood Requirement Support</option>
+                                        <option value="Essential Medicine Locator">Essential Medicine Locator</option>
+                                        <option value="Senior Citizen Welfare Check">Senior Citizen Welfare Check</option>
+                                        <option value="Non-Critical Health Navigation">Non-Critical Health Navigation</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-semibold text-slate-700 mb-1">Location / Area *</label>
+                                    <input type="text" id="req-location" required placeholder="e.g. Kalina, Santacruz East, Mumbai" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Detailed Description of Support Needed *</label>
+                                <textarea id="req-description" rows="4" required minlength="15" placeholder="Please describe the non-critical community assistance or resource information needed (minimum 15 characters)..." class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500"></textarea>
+                            </div>
+
+                            <div class="flex items-start gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                                <input type="checkbox" id="req-ack" required class="mt-1 rounded border-slate-300 text-medical-600">
+                                <label for="req-ack" class="text-xs text-slate-600 leading-relaxed">
+                                    I understand this is a community support & exhibition demonstration platform and does not dispatch emergency medical responders.
+                                </label>
+                            </div>
+
+                            <button type="submit" id="req-submit-btn" class="w-full py-3.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer">
+                                <span>Submit Assistance Request & Generate Reference ID</span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Right 5 Cols: Live Reference ID Tracker & Recent Status -->
+                    <div class="lg:col-span-5 space-y-6">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Live Lookup</span>
+                            <h3 class="font-display text-xl font-bold text-navy-900">Track Request by Reference ID</h3>
+                            <p class="text-xs text-slate-500">Enter your generated Reference ID (or sign in to your User Dashboard) to check real-time coordinator status.</p>
+
+                            <div class="flex gap-2">
+                                <input type="text" id="track-ref-input" placeholder="LL-2026-8492" class="flex-1 px-3.5 py-2.5 text-sm font-mono rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                <button onclick="lookupRequestByRef()" class="px-5 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-semibold text-sm transition cursor-pointer">
+                                    Lookup
+                                </button>
+                            </div>
+
+                            <!-- Lookup Result Box -->
+                            <div id="track-lookup-result" class="hidden p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                                <!-- Populated by lookupRequestByRef() -->
+                            </div>
+                        </div>
+
+                        <!-- Sample Reference IDs for Exhibition Judges -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+                            <h4 class="font-display font-bold text-sm text-navy-900">Sample Exhibition Reference IDs (Click to Test)</h4>
+                            <p class="text-xs text-slate-500">Click any Reference ID below to test instant status lookup:</p>
+                            <div id="sample-ref-pills" class="flex flex-wrap gap-2 pt-1">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 5: AUTHENTICATION - LOGIN (login.html)
+             ===================================================== -->
+        <section id="view-login" class="view-section py-12">
+            <div class="max-w-md mx-auto px-4">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8 space-y-6">
+                    <div class="text-center space-y-1">
+                        <span class="text-xs font-mono text-medical-600 bg-medical-50 px-2.5 py-0.5 rounded border border-medical-200">login.html • Supabase Auth</span>
+                        <h1 class="font-display text-2xl font-extrabold text-navy-900 pt-2">Welcome Back to LifeLink</h1>
+                        <p class="text-xs text-slate-500">Sign in to view your submitted assistance requests and profile.</p>
+                    </div>
+
+                    <!-- One-Click Exhibition Judge Quick Login -->
+                    <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 text-center">One-Click Exhibition Judge Login</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button onclick="quickDemoLogin('user')" class="py-2 px-3 rounded-lg bg-white hover:bg-medical-50 border border-slate-300 text-xs font-bold text-navy-900 transition">
+                                Login as Citizen
+                            </button>
+                            <button onclick="quickDemoLogin('admin')" class="py-2 px-3 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-xs font-bold text-amber-900 transition">
+                                Login as Admin
+                            </button>
+                        </div>
+                    </div>
+
+                    <form id="login-form" onsubmit="handleLoginSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+                            <input type="email" id="login-email" required value="citizen@lifelink.org" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Password *</label>
+                            <input type="password" id="login-password" required value="lifelink2026" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                        </div>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-sm shadow transition cursor-pointer">
+                            Sign In to Dashboard
+                        </button>
+                    </form>
+
+                    <p class="text-xs text-center text-slate-500">
+                        Don't have an account?
+                        <button onclick="navigateTo('register')" class="font-bold text-medical-600 hover:underline">Create an account</button>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 6: AUTHENTICATION - REGISTER (register.html)
+             ===================================================== -->
+        <section id="view-register" class="view-section py-12">
+            <div class="max-w-md mx-auto px-4">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-lg p-6 sm:p-8 space-y-6">
+                    <div class="text-center space-y-1">
+                        <span class="text-xs font-mono text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">register.html • Supabase Auth</span>
+                        <h1 class="font-display text-2xl font-extrabold text-navy-900 pt-2">Create Citizen Account</h1>
+                        <p class="text-xs text-slate-500">Track assistance requests and manage your community support profile.</p>
+                    </div>
+
+                    <form id="register-form" onsubmit="handleRegisterSubmit(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                            <input type="text" id="reg-name" required placeholder="e.g. Priya Nair" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+                            <input type="email" id="reg-email" required placeholder="priya.nair@example.com" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Phone Number *</label>
+                                <input type="tel" id="reg-phone" required placeholder="+91 98XXXXXXXX" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 mb-1">Account Role</label>
+                                <select id="reg-role" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-medical-500">
+                                    <option value="user">Standard User</option>
+                                    <option value="admin">Exhibition Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Password (min 6 chars) *</label>
+                            <input type="password" id="reg-password" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-medical-500">
+                        </div>
+                        <button type="submit" class="w-full py-3 rounded-xl bg-medical-600 hover:bg-medical-700 text-white font-semibold text-sm shadow transition cursor-pointer">
+                            Register & Open Dashboard
+                        </button>
+                    </form>
+
+                    <p class="text-xs text-center text-slate-500">
+                        Already registered?
+                        <button onclick="navigateTo('login')" class="font-bold text-medical-600 hover:underline">Sign In</button>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 7: PROTECTED USER DASHBOARD (dashboard.html)
+             ===================================================== -->
+        <section id="view-dashboard" class="view-section py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+                <!-- Top User Banner -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div id="dash-avatar" class="w-14 h-14 rounded-2xl bg-gradient-to-br from-navy-900 to-medical-600 text-white font-display font-extrabold text-xl flex items-center justify-center shadow">
+                            U
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h1 id="dash-user-name" class="font-display text-2xl font-extrabold text-navy-900">Citizen User</h1>
+                                <span id="dash-user-role-badge" class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200">Authenticated Member</span>
+                            </div>
+                            <p id="dash-user-email" class="text-xs text-slate-500 mt-0.5">citizen@lifelink.org • Protected Session Active</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2.5">
+                        <button onclick="navigateTo('assistance')" class="px-4 py-2.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white text-xs font-bold shadow-sm transition">
+                            + New Assistance Request
+                        </button>
+                        <button onclick="handleLogout()" class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                            Sign Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Main Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Left 8 Cols: Submitted Assistance Requests Table -->
+                    <div class="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="font-display text-lg font-bold text-navy-900">Submitted Assistance Requests</h2>
+                                <p class="text-xs text-slate-500">Live status synced with database & Admin Coordinator Panel.</p>
+                            </div>
+                            <span id="user-req-count" class="px-2.5 py-1 rounded-lg text-xs font-mono font-semibold bg-slate-100 text-navy-900">0 Requests</span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                        <th class="py-3 px-3">Ref ID</th>
+                                        <th class="py-3 px-3">Category & Area</th>
+                                        <th class="py-3 px-3">Submitted</th>
+                                        <th class="py-3 px-3">Status</th>
+                                        <th class="py-3 px-3 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-requests-tbody" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Populated by renderUserDashboard() -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Right 4 Cols: Available Resources & Recent Activity -->
+                    <div class="lg:col-span-4 space-y-6">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+                            <h3 class="font-display font-bold text-base text-navy-900">Quick Available Resources</h3>
+                            <div class="space-y-2">
+                                <button onclick="navigateTo('hospitals')" class="w-full p-3 rounded-xl border border-slate-200 hover:border-medical-500 flex items-center justify-between text-left transition">
+                                    <div>
+                                        <p class="text-xs font-bold text-navy-900">Hospital GIS Map</p>
+                                        <p class="text-[11px] text-slate-500">Locate sample hospitals & directions</p>
+                                    </div>
+                                    <span class="text-medical-600 font-bold">→</span>
+                                </button>
+                                <button onclick="navigateTo('blood-donation')" class="w-full p-3 rounded-xl border border-slate-200 hover:border-crimson-500 flex items-center justify-between text-left transition">
+                                    <div>
+                                        <p class="text-xs font-bold text-navy-900">Blood Donor Registry</p>
+                                        <p class="text-[11px] text-slate-500">Search or register as a donor</p>
+                                    </div>
+                                    <span class="text-crimson-600 font-bold">→</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+                            <h3 class="font-display font-bold text-base text-navy-900">Recent Session Activity</h3>
+                            <ul id="user-activity-feed" class="space-y-2.5 text-xs text-slate-600">
+                                <!-- Populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- =====================================================
+             VIEW 8: ADMIN DASHBOARD (admin.html - RBAC Protected)
+             ===================================================== -->
+        <section id="view-admin" class="view-section py-8">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+                <!-- RBAC Guard Notice if non-admin views -->
+                <div id="admin-rbac-guard" class="hidden bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 text-center space-y-3">
+                    <h2 class="font-display text-xl font-bold text-amber-950">Role-Based Access Control (RBAC) Restricted</h2>
+                    <p class="text-xs sm:text-sm text-amber-800 max-w-xl mx-auto">
+                        Only authenticated administrators with <code class="font-mono">role = 'admin'</code> can access administrative records and status controls. For exhibition testing, click below to elevate your demo session to Admin.
+                    </p>
+                    <button onclick="quickDemoLogin('admin')" class="px-5 py-2.5 rounded-xl bg-navy-900 text-white text-xs font-bold shadow">
+                        Switch to Exhibition Admin Role
+                    </button>
+                </div>
+
+                <!-- Admin Content Wrapper -->
+                <div id="admin-content-wrapper" class="space-y-8">
+                    <!-- Top Admin Header -->
+                    <div class="bg-navy-900 text-white rounded-2xl p-6 shadow-lg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono uppercase bg-amber-400/20 text-amber-300 border border-amber-400/30">RBAC: Administrator</span>
+                                <span class="text-xs font-mono text-slate-400">admin.html</span>
+                            </div>
+                            <h1 class="font-display text-2xl sm:text-3xl font-extrabold mt-1">LifeLink Command & Analytics Center</h1>
+                            <p class="text-xs sm:text-sm text-slate-300">Manage assistance request lifecycles, sample hospital records, donor verifications, and platform telemetry.</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2.5">
+                            <button onclick="openHospitalEditorModal()" class="px-4 py-2.5 rounded-xl bg-medical-600 hover:bg-medical-500 text-white text-xs font-bold shadow transition cursor-pointer">
+                                + Add Sample Hospital
+                            </button>
+                            <button onclick="resetDemoDatabase()" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition cursor-pointer">
+                                Reset Demo Seed Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 KPI Summary Cards -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Registered Users</p>
+                            <p id="admin-kpi-users" class="font-display text-3xl font-extrabold text-navy-900 mt-1">4</p>
+                            <p class="text-xs text-emerald-600 mt-1">Supabase Auth + Profiles</p>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Assistance Requests</p>
+                            <p id="admin-kpi-requests" class="font-display text-3xl font-extrabold text-crimson-600 mt-1">5</p>
+                            <p id="admin-kpi-pending" class="text-xs text-amber-600 mt-1">2 Pending Review</p>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Donor Records</p>
+                            <p id="admin-kpi-donors" class="font-display text-3xl font-extrabold text-emerald-600 mt-1">10</p>
+                            <p class="text-xs text-slate-500 mt-1">Consent-Shielded Directory</p>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Hospital Records</p>
+                            <p id="admin-kpi-hospitals" class="font-display text-3xl font-extrabold text-medical-600 mt-1">6</p>
+                            <p class="text-xs text-slate-500 mt-1">OpenStreetMap Geo-Pinned</p>
+                        </div>
+                    </div>
+
+                    <!-- Chart.js Analytics Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                            <h3 class="font-display font-bold text-base text-navy-900 mb-4">Assistance Requests by Category</h3>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="adminCategoryChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
+                            <h3 class="font-display font-bold text-base text-navy-900 mb-4">Request Resolution Status Breakdown</h3>
+                            <div class="h-64 flex items-center justify-center">
+                                <canvas id="adminStatusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Assistance Request Status Management Table -->
+                    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <h3 class="font-display text-lg font-bold text-navy-900">Assistance Request Status Management</h3>
+                                <p class="text-xs text-slate-500">Update request statuses below. Changes sync immediately with the User Dashboard and Reference Tracker.</p>
+                            </div>
+                            <select id="admin-req-filter" onchange="renderAdminDashboard()" class="px-3 py-1.5 text-xs rounded-lg border border-slate-300 bg-white">
+                                <option value="ALL">All Statuses</option>
+                                <option value="Pending Review">Pending Review</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Resolved">Resolved</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-200 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                        <th class="py-3 px-3">Ref ID</th>
+                                        <th class="py-3 px-3">Citizen & Contact</th>
+                                        <th class="py-3 px-3">Category & Location</th>
+                                        <th class="py-3 px-3">Description</th>
+                                        <th class="py-3 px-3">Status Control</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-requests-tbody" class="divide-y divide-slate-100 text-xs sm:text-sm">
+                                    <!-- Populated by renderAdminDashboard() -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Hospital Records & Donor Listings Management Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Manage Sample Hospitals -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-display font-bold text-base text-navy-900">Manage Sample Hospital Records</h3>
+                                <button onclick="openHospitalEditorModal()" class="text-xs font-bold text-medical-600 hover:underline">+ Add Hospital</button>
+                            </div>
+                            <div id="admin-hospitals-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Manage Donor Listings -->
+                        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-display font-bold text-base text-navy-900">Manage Blood Donor Listings</h3>
+                                <span class="text-xs text-slate-400">Toggle Availability / Remove</span>
+                            </div>
+                            <div id="admin-donors-list" class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==========================================
+         MODALS (Confirmation, Relay, Hospital Editor, SQL/Code Explorer, DB Config)
+         ========================================== -->
+
+    <!-- 1. Assistance Request Confirmation Modal -->
+    <div id="req-confirm-modal" class="fixed inset-0 z-50 hidden bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4 text-center">
+            <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <h3 class="font-display text-xl font-extrabold text-navy-900">Assistance Request Logged</h3>
+            <p class="text-xs text-slate-600">Your request has been validated and saved. Use the Reference ID below to track status updates:</p>
+            <div class="p-4 rounded-xl bg-slate-100 border border-slate-300 flex items-center justify-between">
+                <span id="confirm-ref-id" class="font-mono text-lg font-extrabold text-navy-900">LL-2026-0000</span>
+                <button onclick="copyReferenceId()" class="px-3 py-1.5 rounded-lg bg-navy-900 text-white text-xs font-semibold hover:bg-navy-800">
+                    Copy ID
+                </button>
+            </div>
+            <p class="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                Reminder: Exhibition demonstration mode. Does not dispatch real emergency services.
+            </p>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeModal('req-confirm-modal'); navigateTo('dashboard')" class="flex-1 py-2.5 rounded-xl bg-medical-600 text-white font-semibold text-xs">
+                    View in My Dashboard
+                </button>
+                <button onclick="closeModal('req-confirm-modal')" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-semibold text-xs">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Secure Donor Contact Relay Modal (Privacy Protection) -->
+    <div id="donor-relay-modal" class="fixed inset-0 z-50 hidden bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Donor Privacy Shield</span>
+                <button onclick="closeModal('donor-relay-modal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <h3 class="font-display text-lg font-bold text-navy-900">Request Secure Contact Relay</h3>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                To protect donor privacy, <strong id="relay-donor-alias">Donor</strong>'s phone number is masked. Submit your verified hospital requirement below and LifeLink will forward an encrypted notification to the donor.
+            </p>
+            <form onsubmit="handleDonorRelaySubmit(event)" class="space-y-3">
+                <input type="hidden" id="relay-donor-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Requester Name *</label>
+                    <input type="text" required placeholder="Patient Attendant Name" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Callback Phone Number *</label>
+                    <input type="tel" required placeholder="+91 98XXXXXXXX" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Hospital & Doctor Reference *</label>
+                    <input type="text" required placeholder="e.g. Horizon Multi-Specialty, Ward 4" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-xs shadow">
+                    Send Consent-Protected Relay
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Sample Blood Request Modal -->
+    <div id="blood-request-modal" class="fixed inset-0 z-50 hidden bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-50 text-crimson-600 border border-red-200">Blood Requirement Broadcast</span>
+                <button onclick="closeModal('blood-request-modal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <h3 class="font-display text-lg font-bold text-navy-900">Submit Sample Blood Requirement</h3>
+            <form onsubmit="handleBloodRequirementModalSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Patient / Attendant Name *</label>
+                    <input type="text" id="br-name" required placeholder="e.g. Kavita Joshi" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Blood Group Needed *</label>
+                        <select id="br-group" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white">
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Units Required *</label>
+                        <input type="number" id="br-units" min="1" max="6" value="2" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Hospital Location & Contact *</label>
+                    <input type="text" id="br-location" required placeholder="Bandra Community Hospital • +91 98XXXXXXXX" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-crimson-600 hover:bg-crimson-500 text-white font-semibold text-xs">
+                    Log Blood Support Request
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Admin Add/Edit Sample Hospital Modal -->
+    <div id="hospital-editor-modal" class="fixed inset-0 z-50 hidden bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 id="hospital-modal-title" class="font-display text-lg font-bold text-navy-900">Add Sample Exhibition Hospital</h3>
+                <button onclick="closeModal('hospital-editor-modal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <form id="hospital-editor-form" onsubmit="handleSaveHospital(event)" class="space-y-3">
+                <input type="hidden" id="edit-hosp-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Hospital Name (Marked as Sample) *</label>
+                    <input type="text" id="edit-hosp-name" required placeholder="e.g. Metro Care Sample Hospital" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Area / Locality *</label>
+                        <input type="text" id="edit-hosp-area" required placeholder="e.g. Andheri West" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Category *</label>
+                        <select id="edit-hosp-category" required class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300 bg-white">
+                            <option value="Multi-Specialty">Multi-Specialty</option>
+                            <option value="General & Charitable">General & Charitable</option>
+                            <option value="Cardiac & Trauma">Cardiac & Trauma</option>
+                            <option value="Maternity & Pediatric">Maternity & Pediatric</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Full Address *</label>
+                    <input type="text" id="edit-hosp-address" required placeholder="Plot 14, Link Road, Mumbai 400053" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">General Phone *</label>
+                        <input type="text" id="edit-hosp-phone" required placeholder="+91 22 2600 1100" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Latitude *</label>
+                        <input type="number" step="any" id="edit-hosp-lat" required value="19.0760" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Longitude *</label>
+                        <input type="number" step="any" id="edit-hosp-lng" required value="72.8777" class="w-full px-3 py-2 text-sm rounded-xl border border-slate-300">
+                    </div>
+                </div>
+                <button type="submit" class="w-full py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-xs">
+                    Save Sample Hospital Record
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Database Configuration Modal (Supabase Live vs Exhibition Demo Mode) -->
+    <div id="db-config-modal" class="fixed inset-0 z-50 hidden bg-navy-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div class="flex items-center justify-between">
+                <h3 class="font-display text-lg font-bold text-navy-900">Supabase & Exhibition Storage Configuration</h3>
+                <button onclick="closeModal('db-config-modal')" class="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+                No secret keys are hardcoded. By default, LifeLink runs in <strong>Exhibition Demonstration Mode</strong> using persistent <code class="font-mono">localStorage</code> so it works offline at your IT exhibition. To connect a live Supabase backend, enter your project URL and public <code class="font-mono">anon</code> key below.
+            </p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Project URL</label>
+                    <input type="url" id="supa-url-input" placeholder="https://xyzcompany.supabase.co" class="w-full px-3 py-2 text-sm font-mono rounded-xl border border-slate-300">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Supabase Public Anon Key</label>
+                    <input type="password" id="supa-key-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." class="w-full px-3 py-2 text-sm font-mono rounded-xl border border-slate-300">
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 pt-2">
+                <button onclick="saveSupabaseConfig()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs">
+                    Connect Supabase Client
+                </button>
+                <button onclick="useExhibitionLocalMode()" class="flex-1 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-navy-900 font-semibold text-xs">
+                    Use Exhibition Local Mode
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Multi-File Architecture, Supabase SQL Schema & README Explorer Modal -->
+    <div id="code-explorer-modal" class="fixed inset-0 z-50 hidden bg-navy-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[88vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            <div class="p-4 sm:px-6 bg-navy-900 text-white flex items-center justify-between">
+                <div>
+                    <h3 class="font-display font-bold text-base sm:text-lg">Project Structure, Supabase SQL Schema & Multi-File Setup</h3>
+                    <p class="text-xs text-slate-300">Complete database DDL with Row Level Security (RLS), modular folder tree, and setup README.</p>
+                </div>
+                <button onclick="closeModal('code-explorer-modal')" class="px-3 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs">Close ✕</button>
+            </div>
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-200 bg-slate-50 px-4 pt-2 gap-2 overflow-x-auto text-xs font-mono">
+                <button onclick="switchCodeTab('sql')" id="tab-btn-sql" class="px-3 py-2 rounded-t-lg bg-white border border-b-0 border-slate-200 font-bold text-medical-600">supabase_schema.sql</button>
+                <button onclick="switchCodeTab('tree')" id="tab-btn-tree" class="px-3 py-2 rounded-t-lg text-slate-600 hover:text-navy-900">Project Folder Structure</button>
+                <button onclick="switchCodeTab('readme')" id="tab-btn-readme" class="px-3 py-2 rounded-t-lg text-slate-600 hover:text-navy-900">README.md</button>
+            </div>
+            <!-- Code Content -->
+            <div class="p-5 overflow-y-auto flex-1 bg-slate-950 text-slate-100 font-mono text-xs leading-relaxed">
+                <pre id="code-tab-sql" class="whitespace-pre-wrap">-- LIFELINK SUPABASE POSTGRESQL SCHEMA & ROW LEVEL SECURITY (RLS)
+-- Run this script in your Supabase SQL Editor
+
+create extension if not exists "pgcrypto";
+
+-- 1. PROFILES TABLE (Linked to auth.users)
+create table public.profiles (
+    id uuid references auth.users on delete cascade primary key,
+    full_name text not null,
+    email text unique not null,
+    phone text,
+    role text not null default 'user' check (role in ('user', 'admin')),
+    created_at timestamptz not null default now()
+);
+
+-- 2. HOSPITALS TABLE (Sample Exhibition Directory)
+create table public.hospitals (
+    id uuid primary key default gen_random_uuid(),
+    name text not null,
+    area text not null,
+    address text not null,
+    phone text not null,
+    category text not null,
+    latitude double precision not null,
+    longitude double precision not null,
+    is_sample_record boolean not null default true,
+    created_at timestamptz not null default now()
+);
+
+-- 3. DONORS TABLE (Privacy-Protected Blood Registry)
+create table public.donors (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid references public.profiles(id) on delete set null,
+    donor_code text unique not null,
+    masked_name text not null,
+    blood_group text not null check (blood_group in ('A+','A-','B+','B-','O+','O-','AB+','AB-')),
+    city text not null default 'Mumbai',
+    area text not null,
+    private_phone text not null, -- Protected by RLS / view masking
+    availability text not null default 'Available',
+    consent_given boolean not null default true,
+    created_at timestamptz not null default now()
+);
+
+-- 4. ASSISTANCE REQUESTS TABLE
+create table public.assistance_requests (
+    id uuid primary key default gen_random_uuid(),
+    reference_id text unique not null,
+    user_id uuid references public.profiles(id) on delete set null,
+    full_name text not null,
+    contact_info text not null,
+    category text not null,
+    location text not null,
+    description text not null,
+    status text not null default 'Pending Review' check (status in ('Pending Review', 'In Progress', 'Resolved')),
+    created_at timestamptz not null default now()
+);
+
+-- ENABLE ROW LEVEL SECURITY (RLS)
+alter table public.profiles enable row level security;
+alter table public.hospitals enable row level security;
+alter table public.donors enable row level security;
+alter table public.assistance_requests enable row level security;
+
+-- RLS POLICIES
+-- Hospitals: Public read, Admin write
+create policy "Public can view sample hospitals" on public.hospitals for select using (true);
+create policy "Admins can manage hospitals" on public.hospitals for all using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+);
+
+-- Assistance Requests: Users view own requests, Admins view/update all
+create policy "Users view own requests" on public.assistance_requests for select using (
+    auth.uid() = user_id or exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+);
+create policy "Anyone can submit assistance request" on public.assistance_requests for insert with check (true);
+create policy "Admins can update request status" on public.assistance_requests for update using (
+    exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+);</pre>
+
+                <pre id="code-tab-tree" class="hidden whitespace-pre-wrap">lifelink-platform/
+├── index.html              # Landing page, emergency helplines, module previews, FAQ & contact
+├── hospitals.html          # Hospital discovery, search/filter & Leaflet OpenStreetMap GIS
+├── blood-donation.html     # Donor registration, privacy-shielded directory & awareness
+├── assistance.html         # Validated emergency assistance form & Reference ID tracker
+├── login.html              # Supabase authentication login & quick exhibition role switcher
+├── register.html           # Citizen registration with validation
+├── dashboard.html          # Protected user dashboard (profile, personal requests, activity)
+├── admin.html              # RBAC admin console, Chart.js analytics, hospital & donor CRUD
+├── css/
+│   └── styles.css          # Custom medical tech variables, animations & responsive utilities
+├── js/
+│   ├── config.js           # Runtime Supabase client & Exhibition LocalStorage fallback
+│   ├── auth.js             # Session management, RBAC guards & profile hydration
+│   ├── hospitals.js        # Leaflet map markers, bounds & external directions links
+│   ├── donors.js           # Consent-based donor directory & contact relay modal
+│   ├── assistance.js       # Reference ID generator (LL-2026-XXXX) & status lookup
+│   └── admin-charts.js     # Chart.js analytics & status synchronization
+├── assets/
+│   └── lifelink-logo.svg   # Vector brand identity
+├── supabase_schema.sql     # Complete PostgreSQL tables, constraints & RLS policies
+└── README.md               # Exhibition setup & architecture documentation</pre>
+
+                <pre id="code-tab-readme" class="hidden whitespace-pre-wrap"># LifeLink – Emergency Assistance & Community Support Platform
+**Tagline:** *Connecting Lives. Delivering Hope.*
+
+## 1. Overview
+LifeLink is a modern emergency assistance and community support platform built with HTML5, CSS3, Vanilla JavaScript, Supabase, Leaflet + OpenStreetMap, and Chart.js.
+
+## 2. Ethical & Safety Guardrails
+- **Not an Emergency Dispatch Service:** Clearly advises citizens to dial **112 / 108** for real emergencies.
+- **Honest Hospital Directory:** Displays `[SAMPLE EXHIBITION RECORD]` badges and never fabricates live ICU/bed availability.
+- **Strict Donor Privacy:** Masks personal phone numbers behind a consent-protected relay workflow.
+
+## 3. Running in Exhibition Mode vs. Live Supabase Mode
+1. **Exhibition Demo Mode (Default):** Works immediately out-of-the-box offline or online using pre-seeded synthetic records in `localStorage`.
+2. **Live Supabase Mode:**
+   - Create a project at https://supabase.com
+   - Run `supabase_schema.sql` in the Supabase SQL Editor.
+   - Click **DB: Exhibition LocalStorage** in the top bar and paste your Project URL and Anon Key.</pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         TOAST NOTIFICATION CONTAINER
+         ========================================== -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+    <!-- ==========================================
+         PROFESSIONAL FOOTER
+         ========================================== -->
+    <footer class="bg-navy-950 text-slate-400 border-t border-slate-800 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 pb-8 border-b border-slate-800/80">
+                <div class="space-y-3">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-medical-600 text-white flex items-center justify-center font-bold">L</div>
+                        <span class="font-display font-extrabold text-lg text-white">Life<span class="text-medical-500">Link</span></span>
+                    </div>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Connecting Lives. Delivering Hope. Digital emergency resource discovery and community assistance platform.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="font-display font-bold text-xs uppercase tracking-wider text-white mb-3">Platform Views</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><button onclick="navigateTo('home')" class="hover:text-white transition">Home (index.html)</button></li>
+                        <li><button onclick="navigateTo('hospitals')" class="hover:text-white transition">Hospital Finder (hospitals.html)</button></li>
+                        <li><button onclick="navigateTo('blood-donation')" class="hover:text-white transition">Blood Donation (blood-donation.html)</button></li>
+                        <li><button onclick="navigateTo('assistance')" class="hover:text-white transition">Emergency Assistance (assistance.html)</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-display font-bold text-xs uppercase tracking-wider text-white mb-3">Portals & Documentation</h4>
+                    <ul class="space-y-2 text-xs">
+                        <li><button onclick="navigateTo('dashboard')" class="hover:text-white transition">User Dashboard (dashboard.html)</button></li>
+                        <li><button onclick="navigateTo('admin')" class="hover:text-white transition">Admin Console (admin.html)</button></li>
+                        <li><button onclick="openModal('code-explorer-modal')" class="hover:text-white transition">Supabase SQL & README</button></li>
+                        <li><button onclick="openModal('db-config-modal')" class="hover:text-white transition">Database Configuration</button></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-display font-bold text-xs uppercase tracking-wider text-white mb-3">Exhibition Safety Notice</h4>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Demonstration platform using synthetic records. Does not dispatch emergency responders or replace official <strong>112 / 108</strong> emergency services.
+                    </p>
+                </div>
+            </div>
+            <div class="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+                <p>© 2026 LifeLink Platform – Inter-College IT Exhibition Demonstration Build.</p>
+                <p class="font-mono">HTML5 • CSS3 • Vanilla JS • Supabase • Leaflet • Chart.js</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         MODULAR APPLICATION JAVASCRIPT ARCHITECTURE
+         ========================================== -->
+    <script>
+        /* =========================================================
+           1. INITIAL SYNTHETIC EXHIBITION SEED DATA
+           ========================================================= */
+        const INITIAL_HOSPITALS = [
+            {
+                id: 'hosp-1',
+                name: 'Horizon Multi-Specialty Sample Hospital',
+                area: 'Santacruz West',
+                address: 'Plot 42, SV Road, Santacruz West, Mumbai 400054',
+                phone: '+91 22 2649 1001',
+                category: 'Multi-Specialty',
+                lat: 19.0843,
+                lng: 72.8360
+            },
+            {
+                id: 'hosp-2',
+                name: 'Mahalaxmi Civic Care Sample Hospital',
+                area: 'Mahalaxmi',
+                address: 'Dr. E Moses Road, Mahalaxmi, Mumbai 400011',
+                phone: '+91 22 2492 3300',
+                category: 'General & Charitable',
+                lat: 18.9827,
+                lng: 72.8240
+            },
+            {
+                id: 'hosp-3',
+                name: 'Westside Cardiac & Trauma Demo Institute',
+                area: 'Bandra West',
+                address: 'Chapel Road, Reclamation, Bandra West, Mumbai 400050',
+                phone: '+91 22 2640 5522',
+                category: 'Cardiac & Trauma',
+                lat: 19.0510,
+                lng: 72.8290
+            },
+            {
+                id: 'hosp-4',
+                name: 'Lower Parel Community Foundation Hospital',
+                area: 'Lower Parel',
+                address: 'Senapati Bapat Marg, Lower Parel, Mumbai 400013',
+                phone: '+91 22 2498 7744',
+                category: 'General & Charitable',
+                lat: 18.9950,
+                lng: 72.8310
+            },
+            {
+                id: 'hosp-5',
+                name: 'Lotus Maternity & Pediatric Sample Center',
+                area: 'Khar West',
+                address: '14th Road, Off Linking Road, Khar West, Mumbai 400052',
+                phone: '+91 22 2604 8899',
+                category: 'Maternity & Pediatric',
+                lat: 19.0705,
+                lng: 72.8335
+            },
+            {
+                id: 'hosp-6',
+                name: 'Lokhandwala Metro Sample Medical Center',
+                area: 'Andheri West',
+                address: 'Main Link Road, Andheri West, Mumbai 400053',
+                phone: '+91 22 2636 9090',
+                category: 'Multi-Specialty',
+                lat: 19.1364,
+                lng: 72.8296
+            }
+        ];
+
+        const INITIAL_DONORS = [
+            { id: 'don-101', code: 'LL-DNR-1042', maskedName: 'Aarav K. (Verified Demo)', group: 'O+', city: 'Mumbai', area: 'Santacruz West', availability: 'Available', lastUpdated: '2 days ago' },
+            { id: 'don-102', code: 'LL-DNR-1089', maskedName: 'Meera S. (Verified Demo)', group: 'O-', city: 'Mumbai', area: 'Bandra West', availability: 'Available', lastUpdated: '5 days ago' },
+            { id: 'don-103', code: 'LL-DNR-1120', maskedName: 'Rohan D. (Verified Demo)', group: 'A+', city: 'Mumbai', area: 'Andheri West', availability: 'Available', lastUpdated: '1 week ago' },
+            { id: 'don-104', code: 'LL-DNR-1154', maskedName: 'Zoya M. (Verified Demo)', group: 'B+', city: 'Mumbai', area: 'Mahalaxmi', availability: 'Available', lastUpdated: '3 days ago' },
+            { id: 'don-105', code: 'LL-DNR-1198', maskedName: 'Kabir T. (Verified Demo)', group: 'AB+', city: 'Mumbai', area: 'Lower Parel', availability: 'Available', lastUpdated: 'Yesterday' },
+            { id: 'don-106', code: 'LL-DNR-1231', maskedName: 'Neha P. (Verified Demo)', group: 'A-', city: 'Mumbai', area: 'Khar West', availability: 'Available', lastUpdated: '4 days ago' },
+            { id: 'don-107', code: 'LL-DNR-1277', maskedName: 'Vikram R. (Verified Demo)', group: 'B-', city: 'Mumbai', area: 'Dadar West', availability: 'Recent Donor', lastUpdated: '3 weeks ago' },
+            { id: 'don-108', code: 'LL-DNR-1305', maskedName: 'Sanya G. (Verified Demo)', group: 'AB-', city: 'Mumbai', area: 'Santacruz East', availability: 'Available', lastUpdated: '6 days ago' },
+            { id: 'don-109', code: 'LL-DNR-1340', maskedName: 'Devansh J. (Verified Demo)', group: 'O+', city: 'Mumbai', area: 'Vile Parle', availability: 'Available', lastUpdated: '2 days ago' },
+            { id: 'don-110', code: 'LL-DNR-1392', maskedName: 'Ishita B. (Verified Demo)', group: 'B+', city: 'Mumbai', area: 'Prabhadevi', availability: 'Available', lastUpdated: 'Today' }
+        ];
+
+        const INITIAL_REQUESTS = [
+            {
+                id: 'req-1',
+                refId: 'LL-2026-8492',
+                userEmail: 'citizen@lifelink.org',
+                fullName: 'Siddharth Mehta',
+                contact: '+91 98201 XXXXX (Demo)',
+                category: 'Blood Requirement Support',
+                location: 'Santacruz West, Mumbai',
+                description: 'Seeking 2 units of O+ blood donor coordination for scheduled surgery at Horizon Sample Hospital.',
+                status: 'In Progress',
+                createdAt: '2026-11-18 07:30'
+            },
+            {
+                id: 'req-2',
+                refId: 'LL-2026-7319',
+                userEmail: 'citizen@lifelink.org',
+                fullName: 'Siddharth Mehta',
+                contact: '+91 98201 XXXXX (Demo)',
+                category: 'Medical Transport Guidance',
+                location: 'Bandra West, Mumbai',
+                description: 'Requesting non-critical wheelchair-accessible patient transport directory contact for elderly parent.',
+                status: 'Resolved',
+                createdAt: '2026-11-17 16:15'
+            },
+            {
+                id: 'req-3',
+                refId: 'LL-2026-9104',
+                userEmail: 'priya@lifelink.org',
+                fullName: 'Priya Nair',
+                contact: '+91 98190 XXXXX (Demo)',
+                category: 'Essential Medicine Locator',
+                location: 'Andheri West, Mumbai',
+                description: 'Looking for 24x7 hospital pharmacy guidance near Lokhandwala for post-operative care supplies.',
+                status: 'Pending Review',
+                createdAt: '2026-11-18 08:10'
+            },
+            {
+                id: 'req-4',
+                refId: 'LL-2026-6051',
+                userEmail: 'rahul@lifelink.org',
+                fullName: 'Rahul Verma',
+                contact: '+91 97692 XXXXX (Demo)',
+                category: 'Senior Citizen Welfare Check',
+                location: 'Mahalaxmi, Mumbai',
+                description: 'Requesting community volunteer check-in information for senior citizen living alone.',
+                status: 'Pending Review',
+                createdAt: '2026-11-18 08:25'
+            },
+            {
+                id: 'req-5',
+                refId: 'LL-2026-5218',
+                userEmail: 'ananya@lifelink.org',
+                fullName: 'Dr. Ananya Sharma',
+                contact: '+91 98211 XXXXX (Demo)',
+                category: 'Non-Critical Health Navigation',
+                location: 'Lower Parel, Mumbai',
+                description: 'Community clinic directory verification request for upcoming neighborhood blood awareness camp.',
+                status: 'Resolved',
+                createdAt: '2026-11-16 11:40'
+            }
+        ];
+
+        const INITIAL_USERS = [
+            { name: 'Siddharth Mehta', email: 'citizen@lifelink.org', role: 'user', phone: '+91 98201 00001' },
+            { name: 'Exhibition Coordinator', email: 'admin@lifelink.org', role: 'admin', phone: '+91 22 2600 9999' },
+            { name: 'Priya Nair', email: 'priya@lifelink.org', role: 'user', phone: '+91 98190 00002' },
+            { name: 'Rahul Verma', email: 'rahul@lifelink.org', role: 'user', phone: '+91 97692 00003' }
+        ];
+
+        /* =========================================================
+           2. APPLICATION STATE & DUAL-MODE DATA LAYER
+           ========================================================= */
+        let appState = {
+            currentView: 'home',
+            currentUser: null,
+            hospitals: [],
+            donors: [],
+            requests: [],
+            users: [],
+            activities: [],
+            supabaseClient: null,
+            dbMode: 'LOCAL_DEMO'
+        };
+
+        let leafletMap = null;
+        let leafletMarkers = [];
+        let adminCatChartInstance = null;
+        let adminStatusChartInstance = null;
+
+        function initDataStore() {
+            try {
+                const storedHosp = localStorage.getItem('lifelink_hospitals');
+                const storedDonors = localStorage.getItem('lifelink_donors');
+                const storedReqs = localStorage.getItem('lifelink_requests');
+                const storedUsers = localStorage.getItem('lifelink_users');
+                const storedUserSession = localStorage.getItem('lifelink_session');
+                const storedActivities = localStorage.getItem('lifelink_activities');
+
+                appState.hospitals = storedHosp ? JSON.parse(storedHosp) : [...INITIAL_HOSPITALS];
+                appState.donors = storedDonors ? JSON.parse(storedDonors) : [...INITIAL_DONORS];
+                appState.requests = storedReqs ? JSON.parse(storedReqs) : [...INITIAL_REQUESTS];
+                appState.users = storedUsers ? JSON.parse(storedUsers) : [...INITIAL_USERS];
+                appState.currentUser = storedUserSession ? JSON.parse(storedUserSession) : INITIAL_USERS[0];
+                appState.activities = storedActivities ? JSON.parse(storedActivities) : [
+                    'Exhibition Demo Mode initialized with synthetic Mumbai dataset.',
+                    'Tracked Reference ID LL-2026-8492 synced with Coordinator Console.'
+                ];
+
+                persistState();
+            } catch (err) {
+                console.error('Storage initialization fallback:', err);
+                appState.hospitals = [...INITIAL_HOSPITALS];
+                appState.donors = [...INITIAL_DONORS];
+                appState.requests = [...INITIAL_REQUESTS];
+                appState.users = [...INITIAL_USERS];
+                appState.currentUser = INITIAL_USERS[0];
+            }
+        }
+
+        function persistState() {
+            try {
+                localStorage.setItem('lifelink_hospitals', JSON.stringify(appState.hospitals));
+                localStorage.setItem('lifelink_donors', JSON.stringify(appState.donors));
+                localStorage.setItem('lifelink_requests', JSON.stringify(appState.requests));
+                localStorage.setItem('lifelink_users', JSON.stringify(appState.users));
+                if (appState.currentUser) {
+                    localStorage.setItem('lifelink_session', JSON.stringify(appState.currentUser));
+                } else {
+                    localStorage.removeItem('lifelink_session');
+                }
+                localStorage.setItem('lifelink_activities', JSON.stringify(appState.activities.slice(0, 8)));
+            } catch (e) {
+                console.warn('LocalStorage write warning:', e);
+            }
+            updateGlobalMetrics();
+        }
+
+        function logActivity(text) {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            appState.activities.unshift(`[${timeStr}] ${text}`);
+            persistState();
+        }
+
+        function resetDemoDatabase() {
+            localStorage.removeItem('lifelink_hospitals');
+            localStorage.removeItem('lifelink_donors');
+            localStorage.removeItem('lifelink_requests');
+            localStorage.removeItem('lifelink_users');
+            initDataStore();
+            renderAllViews();
+            showToast('Exhibition synthetic database reset to default seed records.', 'success');
+        }
+
+        /* =========================================================
+           3. ROUTING & MULTI-PAGE VIEW CONTROLLER
+           ========================================================= */
+        const FILE_MAP = {
+            'home': 'index.html',
+            'hospitals': 'hospitals.html',
+            'blood-donation': 'blood-donation.html',
+            'assistance': 'assistance.html',
+            'login': 'login.html',
+            'register': 'register.html',
+            'dashboard': 'dashboard.html',
+            'admin': 'admin.html'
+        };
+
+        function navigateTo(viewId, scrollTargetId = null) {
+            // Protected Route Check for User Dashboard
+            if (viewId === 'dashboard' && !appState.currentUser) {
+                showToast('Please sign in to access your personal User Dashboard.', 'info');
+                viewId = 'login';
+            }
+
+            appState.currentView = viewId;
+
+            // Hide all sections & activate target
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+            const targetSec = document.getElementById(`view-${viewId}`);
+            if (targetSec) targetSec.classList.add('active');
+
+            // Update Simulated File Path Indicator
+            const fileIndicator = document.getElementById('active-file-indicator');
+            if (fileIndicator) fileIndicator.textContent = FILE_MAP[viewId] || 'index.html';
+
+            // Highlight active navbar button
+            document.querySelectorAll('.nav-link').forEach(btn => {
+                if (btn.getAttribute('data-nav') === viewId) {
+                    btn.classList.add('bg-medical-50', 'text-medical-700', 'font-semibold');
+                } else {
+                    btn.classList.remove('bg-medical-50', 'text-medical-700', 'font-semibold');
+                }
+            });
+
+            // View-specific lifecycle hooks
+            if (viewId === 'hospitals') {
+                setTimeout(() => {
+                    initOrRefreshHospitalMap();
+                }, 80);
+            } else if (viewId === 'blood-donation') {
+                renderDonors();
+            } else if (viewId === 'assistance') {
+                renderSampleReferencePills();
+            } else if (viewId === 'dashboard') {
+                renderUserDashboard();
+            } else if (viewId === 'admin') {
+                renderAdminDashboard();
+            }
+
+            if (scrollTargetId) {
+                setTimeout(() => {
+                    const el = document.getElementById(scrollTargetId);
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }, 120);
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        /* =========================================================
+           4. LEAFLET & OPENSTREETMAP HOSPITAL FINDER MODULE
+           ========================================================= */
+        function initOrRefreshHospitalMap() {
+            const mapContainer = document.getElementById('hospital-map');
+            if (!mapContainer) return;
+
+            if (!leafletMap) {
+                leafletMap = L.map('hospital-map').setView([19.0550, 72.8330], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(leafletMap);
+            } else {
+                leafletMap.invalidateSize();
+            }
+            renderHospitals();
+        }
+
+        function renderHospitals() {
+            const searchVal = (document.getElementById('hospital-search-input')?.value || '').toLowerCase().trim();
+            const areaVal = document.getElementById('hospital-area-filter')?.value || 'ALL';
+            const catVal = document.getElementById('hospital-category-filter')?.value || 'ALL';
+
+            const filtered = appState.hospitals.filter(h => {
+                const matchSearch = h.name.toLowerCase().includes(searchVal) ||
+                                    h.address.toLowerCase().includes(searchVal) ||
+                                    h.area.toLowerCase().includes(searchVal);
+                const matchArea = areaVal === 'ALL' || h.area === areaVal;
+                const matchCat = catVal === 'ALL' || h.category === catVal;
+                return matchSearch && matchArea && matchCat;
+            });
+
+            const countBadge = document.getElementById('hospital-count-badge');
+            if (countBadge) countBadge.textContent = `${filtered.length} shown`;
+
+            const container = document.getElementById('hospital-cards-container');
+            if (container) {
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+                            <p class="font-display font-bold text-base text-navy-900">No Matching Sample Hospitals Found</p>
+                            <p class="text-xs text-slate-500">Try clearing your search keyword or selecting "All Mumbai Localities".</p>
+                            <button onclick="resetHospitalFilters()" class="mt-2 px-4 py-2 rounded-xl bg-medical-600 text-white text-xs font-semibold">Reset Filters</button>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = filtered.map(h => {
+                        const osmDirectionsUrl = `https://www.openstreetmap.org/directions?from=&to=${h.lat}%2C${h.lng}`;
+                        return `
+                            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm card-hover flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div class="space-y-1.5">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-300">[SAMPLE EXHIBITION RECORD]</span>
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-medical-50 text-medical-700 border border-medical-200">${h.category}</span>
+                                        <span class="text-xs font-semibold text-slate-500">• ${h.area}</span>
+                                    </div>
+                                    <h3 class="font-display font-bold text-lg text-navy-900">${h.name}</h3>
+                                    <p class="text-xs text-slate-600 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                        <span>${h.address}</span>
+                                    </p>
+                                    <p class="text-xs text-slate-600 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                                        <span>General Inquiry: <strong class="font-mono text-navy-900">${h.phone}</strong></span>
+                                    </p>
+                                </div>
+                                <div class="flex sm:flex-col gap-2 shrink-0">
+                                    <button onclick="focusHospitalOnMap('${h.id}')" class="px-3.5 py-2 rounded-xl bg-medical-50 hover:bg-medical-100 text-medical-700 font-semibold text-xs border border-medical-200 transition cursor-pointer">
+                                        Focus on Map
+                                    </button>
+                                    <a href="${osmDirectionsUrl}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white font-semibold text-xs text-center transition">
+                                        Directions ↗
+                                    </a>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            // Update Leaflet Map Markers
+            if (leafletMap) {
+                leafletMarkers.forEach(m => leafletMap.removeLayer(m));
+                leafletMarkers = [];
+
+                filtered.forEach(h => {
+                    const marker = L.marker([h.lat, h.lng]).addTo(leafletMap);
+                    marker.bindPopup(`
+                        <div class="p-1 space-y-1">
+                            <span style="font-size:10px; font-weight:700; color:#92400E; background:#FEF3C7; padding:2px 6px; border-radius:4px;">[SAMPLE RECORD]</span>
+                            <p style="font-weight:700; font-size:13px; color:#0A192F; margin:4px 0 2px;">${h.name}</p>
+                            <p style="font-size:11px; color:#475569; margin:0;">${h.category} • ${h.area}</p>
+                            <p style="font-size:11px; color:#0284C7; font-family:monospace; margin:2px 0;">${h.phone}</p>
+                        </div>
+                    `);
+                    marker.hospitalId = h.id;
+                    leafletMarkers.push(marker);
+                });
+            }
+        }
+
+        function focusHospitalOnMap(hospId) {
+            const hosp = appState.hospitals.find(h => h.id === hospId);
+            if (!hosp || !leafletMap) return;
+            leafletMap.setView([hosp.lat, hosp.lng], 15, { animate: true });
+            const marker = leafletMarkers.find(m => m.hospitalId === hospId);
+            if (marker) marker.openPopup();
+        }
+
+        function resetHospitalMapBounds() {
+            if (!leafletMap) return;
+            leafletMap.setView([19.0550, 72.8330], 12, { animate: true });
+        }
+
+        function resetHospitalFilters() {
+            document.getElementById('hospital-search-input').value = '';
+            document.getElementById('hospital-area-filter').value = 'ALL';
+            document.getElementById('hospital-category-filter').value = 'ALL';
+            renderHospitals();
+        }
+
+        function renderHomeHospitalPreview() {
+            const previewEl = document.getElementById('home-hospital-preview-list');
+            if (!previewEl) return;
+            previewEl.innerHTML = appState.hospitals.slice(0, 3).map(h => `
+                <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[10px] font-mono font-semibold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">SAMPLE</span>
+                            <p class="font-display font-bold text-sm text-navy-900">${h.name}</p>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-0.5">${h.area} • ${h.category}</p>
+                    </div>
+                    <button onclick="navigateTo('hospitals'); setTimeout(() => focusHospitalOnMap('${h.id}'), 200)" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-medical-500 text-xs font-semibold text-medical-600 shrink-0">
+                        View Pin
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        /* =========================================================
+           5. BLOOD DONATION & PRIVACY-SHIELDED DIRECTORY MODULE
+           ========================================================= */
+        function jumpToBloodGroup(group) {
+            navigateTo('blood-donation');
+            const selectEl = document.getElementById('donor-group-filter');
+            if (selectEl) {
+                selectEl.value = group;
+                renderDonors();
+            }
+        }
+
+        function renderDonors() {
+            const groupFilter = document.getElementById('donor-group-filter')?.value || 'ALL';
+            const locFilter = (document.getElementById('donor-location-filter')?.value || '').toLowerCase().trim();
+            const availFilter = document.getElementById('donor-availability-filter')?.value || 'ALL';
+
+            const filtered = appState.donors.filter(d => {
+                const matchGroup = groupFilter === 'ALL' || d.group === groupFilter;
+                const matchLoc = !locFilter || d.area.toLowerCase().includes(locFilter) || d.city.toLowerCase().includes(locFilter);
+                const matchAvail = availFilter === 'ALL' || d.availability === availFilter;
+                return matchGroup && matchLoc && matchAvail;
+            });
+
+            const badge = document.getElementById('donor-count-badge');
+            if (badge) badge.textContent = `${filtered.length} Donors`;
+
+            const container = document.getElementById('donor-cards-container');
+            if (!container) return;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-2">
+                        <p class="font-display font-bold text-base text-navy-900">No Donors Match Current Filter</p>
+                        <p class="text-xs text-slate-500">Try selecting "All Blood Groups" or clearing the location filter.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(d => {
+                const isAvail = d.availability === 'Available';
+                return `
+                    <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 card-hover">
+                        <div class="flex items-center gap-4">
+                            <div class="w-13 h-13 w-12 h-12 rounded-2xl bg-red-50 border border-red-200 text-crimson-600 font-display font-extrabold text-lg flex items-center justify-center shrink-0">
+                                ${d.group}
+                            </div>
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="font-mono text-[11px] font-semibold text-slate-500">${d.code}</span>
+                                    <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${isAvail ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
+                                        ${d.availability}
+                                    </span>
+                                </div>
+                                <h3 class="font-display font-bold text-base text-navy-900 mt-0.5">${d.maskedName}</h3>
+                                <p class="text-xs text-slate-500">${d.area}, ${d.city} • Phone Masked for Privacy</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button onclick="openDonorRelayModal('${d.id}', '${d.maskedName} (${d.group})')" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-semibold transition cursor-pointer">
+                                Request Contact Relay
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function handleDonorRegister(e) {
+            e.preventDefault();
+            const rawName = document.getElementById('donor-name').value.trim();
+            const group = document.getElementById('donor-blood-group').value;
+            const city = document.getElementById('donor-city').value.trim();
+            const area = document.getElementById('donor-area').value.trim();
+
+            if (!rawName || !group || !area) return;
+
+            // Mask full name for public privacy (e.g. "Rohan Deshmukh" -> "Rohan D. (Verified Demo)")
+            const parts = rawName.split(' ');
+            const masked = parts.length > 1
+                ? `${parts[0]} ${parts[parts.length - 1].charAt(0).toUpperCase()}. (Verified Demo)`
+                : `${rawName} (Verified Demo)`;
+
+            const newDonor = {
+                id: 'don-' + Date.now(),
+                code: 'LL-DNR-' + Math.floor(1400 + Math.random() * 8500),
+                maskedName: masked,
+                group,
+                city,
+                area,
+                availability: 'Available',
+                lastUpdated: 'Just now'
+            };
+
+            appState.donors.unshift(newDonor);
+            logActivity(`New volunteer blood donor registered (${group} in ${area}).`);
+            persistState();
+            renderDonors();
+            e.target.reset();
+            document.getElementById('donor-city').value = 'Mumbai';
+            showToast(`Thank you! Registered as ${masked} (${newDonor.code}). Private phone shielded.`, 'success');
+        }
+
+        function openDonorRelayModal(donorId, donorLabel) {
+            document.getElementById('relay-donor-id').value = donorId;
+            document.getElementById('relay-donor-alias').textContent = donorLabel;
+            openModal('donor-relay-modal');
+        }
+
+        function handleDonorRelaySubmit(e) {
+            e.preventDefault();
+            const alias = document.getElementById('relay-donor-alias').textContent;
+            closeModal('donor-relay-modal');
+            e.target.reset();
+            logActivity(`Consent-protected contact relay sent to ${alias}.`);
+            showToast(`Encrypted contact relay queued for ${alias}.`, 'success');
+        }
+
+        function handleBloodRequirementModalSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('br-name').value.trim();
+            const group = document.getElementById('br-group').value;
+            const units = document.getElementById('br-units').value;
+            const loc = document.getElementById('br-location').value.trim();
+
+            const refId = 'LL-2026-' + Math.floor(1000 + Math.random() * 9000);
+            const newReq = {
+                id: 'req-' + Date.now(),
+                refId,
+                userEmail: appState.currentUser ? appState.currentUser.email : 'guest@lifelink.org',
+                fullName: name,
+                contact: loc,
+                category: 'Blood Requirement Support',
+                location: loc,
+                description: `Urgent community broadcast: ${units} unit(s) of ${group} blood required.`,
+                status: 'Pending Review',
+                createdAt: new Date().toISOString().slice(0, 16).replace('T', ' ')
+            };
+
+            appState.requests.unshift(newReq);
+            logActivity(`Blood requirement request ${refId} (${group}) logged.`);
+            persistState();
+            closeModal('blood-request-modal');
+            e.target.reset();
+
+            document.getElementById('confirm-ref-id').textContent = refId;
+            openModal('req-confirm-modal');
+        }
+
+        /* =========================================================
+           6. EMERGENCY ASSISTANCE MODULE & REFERENCE ID TRACKER
+           ========================================================= */
+        function handleAssistanceSubmit(e) {
+            e.preventDefault();
+            const fullName = document.getElementById('req-name').value.trim();
+            const contact = document.getElementById('req-contact').value.trim();
+            const category = document.getElementById('req-category').value;
+            const location = document.getElementById('req-location').value.trim();
+            const description = document.getElementById('req-description').value.trim();
+
+            if (description.length < 15) {
+                showToast('Please provide at least 15 characters in the description.', 'error');
+                return;
+            }
+
+            const refId = 'LL-2026-' + Math.floor(1000 + Math.random() * 9000);
+            const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+
+            const newRequest = {
+                id: 'req-' + Date.now(),
+                refId,
+                userEmail: appState.currentUser ? appState.currentUser.email : 'citizen@lifelink.org',
+                fullName,
+                contact,
+                category,
+                location,
+                description,
+                status: 'Pending Review',
+                createdAt: nowStr
+            };
+
+            appState.requests.unshift(newRequest);
+            logActivity(`Submitted assistance request ${refId} (${category}).`);
+            persistState();
+
+            e.target.reset();
+            renderSampleReferencePills();
+
+            document.getElementById('confirm-ref-id').textContent = refId;
+            openModal('req-confirm-modal');
+            showToast(`Assistance Request saved! Reference ID: ${refId}`, 'success');
+        }
+
+        function copyReferenceId() {
+            const refText = document.getElementById('confirm-ref-id').textContent;
+            const tempInput = document.createElement('input');
+            tempInput.value = refText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(`Copied Reference ID ${refText} to clipboard!`, 'success');
+        }
+
+        function lookupRequestByRef(customRef = null) {
+            const inputEl = document.getElementById('track-ref-input');
+            const query = (customRef || inputEl.value || '').trim().toUpperCase();
+            if (customRef && inputEl) inputEl.value = customRef;
+
+            const resultBox = document.getElementById('track-lookup-result');
+            if (!query) {
+                showToast('Please enter a Reference ID (e.g. LL-2026-8492).', 'info');
+                return;
+            }
+
+            const found = appState.requests.find(r => r.refId.toUpperCase() === query);
+            resultBox.classList.remove('hidden');
+
+            if (!found) {
+                resultBox.innerHTML = `
+                    <p class="text-xs font-bold text-crimson-600">No Assistance Request Found for "${query}"</p>
+                    <p class="text-[11px] text-slate-500">Verify the Reference ID or click one of the sample pills below.</p>
+                `;
+                return;
+            }
+
+            const statusBadge = getStatusBadgeHTML(found.status);
+            resultBox.innerHTML = `
+                <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span class="font-mono font-bold text-sm text-navy-900">${found.refId}</span>
+                    ${statusBadge}
+                </div>
+                <p class="text-xs font-bold text-navy-900 mt-1">${found.category}</p>
+                <p class="text-xs text-slate-600">${found.description}</p>
+                <div class="text-[11px] text-slate-500 pt-1 flex items-center justify-between">
+                    <span>Location: ${found.location}</span>
+                    <span>Logged: ${found.createdAt}</span>
+                </div>
+            `;
+        }
+
+        function quickTrackFromHero() {
+            const val = document.getElementById('hero-track-input').value.trim();
+            navigateTo('assistance');
+            setTimeout(() => {
+                lookupRequestByRef(val || 'LL-2026-8492');
+            }, 100);
+        }
+
+        function renderSampleReferencePills() {
+            const container = document.getElementById('sample-ref-pills');
+            if (!container) return;
+            container.innerHTML = appState.requests.slice(0, 5).map(r => `
+                <button onclick="lookupRequestByRef('${r.refId}')" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-slate-100 hover:bg-medical-50 text-navy-900 hover:text-medical-700 border border-slate-300 transition">
+                    ${r.refId} (${r.status})
+                </button>
+            `).join('');
+        }
+
+        function getStatusBadgeHTML(status) {
+            if (status === 'Resolved') {
+                return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Resolved</span>`;
+            }
+            if (status === 'In Progress') {
+                return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-50 text-medical-700 border border-sky-200">In Progress</span>`;
+            }
+            return `<span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200">Pending Review</span>`;
+        }
+
+        /* =========================================================
+           7. USER AUTHENTICATION & PROTECTED DASHBOARD
+           ========================================================= */
+        function updateAuthUI() {
+            const guestActions = document.getElementById('auth-guest-actions');
+            const userActions = document.getElementById('auth-user-actions');
+
+            if (appState.currentUser) {
+                guestActions.classList.add('hidden');
+                userActions.classList.remove('hidden');
+                userActions.classList.add('flex');
+
+                document.getElementById('nav-user-name').textContent = appState.currentUser.name;
+                document.getElementById('nav-user-role').textContent = appState.currentUser.role === 'admin' ? 'Administrator' : 'Citizen Member';
+                document.getElementById('nav-user-avatar').textContent = appState.currentUser.name.charAt(0).toUpperCase();
+            } else {
+                guestActions.classList.remove('hidden');
+                userActions.classList.add('hidden');
+                userActions.classList.remove('flex');
+            }
+        }
+
+        function quickDemoLogin(roleType) {
+            if (roleType === 'admin') {
+                appState.currentUser = {
+                    name: 'Exhibition Coordinator',
+                    email: 'admin@lifelink.org',
+                    role: 'admin',
+                    phone: '+91 22 2600 9999'
+                };
+                logActivity('Switched session to Exhibition Administrator role.');
+                persistState();
+                updateAuthUI();
+                navigateTo('admin');
+                showToast('Logged in as Exhibition Administrator (RBAC Unlocked).', 'success');
+            } else {
+                appState.currentUser = INITIAL_USERS[0];
+                logActivity('Switched session to Standard Citizen User.');
+                persistState();
+                updateAuthUI();
+                navigateTo('dashboard');
+                showToast(`Logged in as ${appState.currentUser.name}.`, 'success');
+            }
+        }
+
+        function handleLoginSubmit(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
+            let user = appState.users.find(u => u.email.toLowerCase() === email);
+
+            if (!user) {
+                user = {
+                    name: email.split('@')[0],
+                    email,
+                    role: email.includes('admin') ? 'admin' : 'user',
+                    phone: '+91 98200 00000'
+                };
+                appState.users.push(user);
+            }
+
+            appState.currentUser = user;
+            logActivity(`User ${user.email} authenticated.`);
+            persistState();
+            updateAuthUI();
+            navigateTo(user.role === 'admin' ? 'admin' : 'dashboard');
+            showToast(`Welcome back, ${user.name}!`, 'success');
+        }
+
+        function handleRegisterSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const email = document.getElementById('reg-email').value.trim().toLowerCase();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const role = document.getElementById('reg-role').value;
+
+            const newUser = { name, email, phone, role };
+            appState.users.push(newUser);
+            appState.currentUser = newUser;
+            logActivity(`Registered new ${role} profile: ${name}.`);
+            persistState();
+            updateAuthUI();
+            navigateTo(role === 'admin' ? 'admin' : 'dashboard');
+            showToast(`Account created for ${name}!`, 'success');
+        }
+
+        function handleLogout() {
+            logActivity(`User ${appState.currentUser?.email || ''} signed out.`);
+            appState.currentUser = null;
+            persistState();
+            updateAuthUI();
+            navigateTo('login');
+            showToast('You have been securely logged out.', 'info');
+        }
+
+        function renderUserDashboard() {
+            if (!appState.currentUser) return;
+
+            document.getElementById('dash-user-name').textContent = appState.currentUser.name;
+            document.getElementById('dash-user-email').textContent = `${appState.currentUser.email} • Role: ${appState.currentUser.role.toUpperCase()}`;
+            document.getElementById('dash-avatar').textContent = appState.currentUser.name.charAt(0).toUpperCase();
+
+            const tbody = document.getElementById('user-requests-tbody');
+            const myRequests = appState.requests;
+            document.getElementById('user-req-count').textContent = `${myRequests.length} Requests`;
+
+            tbody.innerHTML = myRequests.map(r => `
+                <tr class="hover:bg-slate-50">
+                    <td class="py-3.5 px-3 font-mono font-bold text-xs text-navy-900">${r.refId}</td>
+                    <td class="py-3.5 px-3">
+                        <p class="font-semibold text-xs text-navy-900">${r.category}</p>
+                        <p class="text-[11px] text-slate-500">${r.location}</p>
+                    </td>
+                    <td class="py-3.5 px-3 text-xs text-slate-500">${r.createdAt}</td>
+                    <td class="py-3.5 px-3">${getStatusBadgeHTML(r.status)}</td>
+                    <td class="py-3.5 px-3 text-right">
+                        <button onclick="navigateTo('assistance'); setTimeout(() => lookupRequestByRef('${r.refId}'), 100)" class="text-xs font-semibold text-medical-600 hover:underline">
+                            Inspect
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const feed = document.getElementById('user-activity-feed');
+            feed.innerHTML = appState.activities.slice(0, 6).map(act => `
+                <li class="p-2.5 rounded-lg bg-slate-50 border border-slate-200/70 font-mono text-[11px]">${act}</li>
+            `).join('');
+        }
+
+        /* =========================================================
+           8. ADMIN DASHBOARD, RBAC & CHART.JS ANALYTICS
+           ========================================================= */
+        function renderAdminDashboard() {
+            const isAdmin = appState.currentUser && appState.currentUser.role === 'admin';
+            const guardEl = document.getElementById('admin-rbac-guard');
+            const contentEl = document.getElementById('admin-content-wrapper');
+
+            if (!isAdmin) {
+                guardEl.classList.remove('hidden');
+            } else {
+                guardEl.classList.add('hidden');
+            }
+            contentEl.classList.remove('hidden');
+
+            // Update KPIs
+            document.getElementById('admin-kpi-users').textContent = appState.users.length;
+            document.getElementById('admin-kpi-requests').textContent = appState.requests.length;
+            const pendingCount = appState.requests.filter(r => r.status === 'Pending Review').length;
+            document.getElementById('admin-kpi-pending').textContent = `${pendingCount} Pending Review`;
+            document.getElementById('admin-kpi-donors').textContent = appState.donors.length;
+            document.getElementById('admin-kpi-hospitals').textContent = appState.hospitals.length;
+
+            // Render Requests Table with Status Selector
+            const statusFilter = document.getElementById('admin-req-filter')?.value || 'ALL';
+            const filteredReqs = appState.requests.filter(r => statusFilter === 'ALL' || r.status === statusFilter);
+
+            const reqTbody = document.getElementById('admin-requests-tbody');
+            reqTbody.innerHTML = filteredReqs.map(r => `
+                <tr class="hover:bg-slate-50">
+                    <td class="py-3 px-3 font-mono font-bold text-xs text-navy-900">${r.refId}</td>
+                    <td class="py-3 px-3">
+                        <p class="font-bold text-xs text-navy-900">${r.fullName}</p>
+                        <p class="text-[11px] text-slate-500">${r.contact}</p>
+                    </td>
+                    <td class="py-3 px-3">
+                        <p class="font-semibold text-xs text-medical-700">${r.category}</p>
+                        <p class="text-[11px] text-slate-500">${r.location}</p>
+                    </td>
+                    <td class="py-3 px-3 max-w-xs">
+                        <p class="text-xs text-slate-600 line-clamp-2">${r.description}</p>
+                    </td>
+                    <td class="py-3 px-3">
+                        <select onchange="updateRequestStatus('${r.id}', this.value)" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold border border-slate-300 bg-white">
+                            <option value="Pending Review" ${r.status === 'Pending Review' ? 'selected' : ''}>Pending Review</option>
+                            <option value="In Progress" ${r.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                            <option value="Resolved" ${r.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Render Admin Hospitals List
+            const hospList = document.getElementById('admin-hospitals-list');
+            hospList.innerHTML = appState.hospitals.map(h => `
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                    <div>
+                        <p class="font-display font-bold text-xs text-navy-900">${h.name}</p>
+                        <p class="text-[11px] text-slate-500">${h.area} • ${h.category}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="openHospitalEditorModal('${h.id}')" class="px-2.5 py-1 rounded bg-white border border-slate-300 text-[11px] font-semibold text-medical-600">Edit</button>
+                        <button onclick="deleteHospitalRecord('${h.id}')" class="px-2.5 py-1 rounded bg-red-50 border border-red-200 text-[11px] font-semibold text-crimson-600">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+
+            // Render Admin Donors List
+            const donorList = document.getElementById('admin-donors-list');
+            donorList.innerHTML = appState.donors.map(d => `
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-red-100 text-crimson-600 font-bold text-xs flex items-center justify-center">${d.group}</span>
+                        <div>
+                            <p class="font-display font-bold text-xs text-navy-900">${d.maskedName}</p>
+                            <p class="text-[11px] text-slate-500">${d.code} • ${d.area}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleDonorAvailability('${d.id}')" class="px-2.5 py-1 rounded bg-white border border-slate-300 text-[11px] font-semibold text-slate-700">
+                            ${d.availability}
+                        </button>
+                        <button onclick="deleteDonorRecord('${d.id}')" class="px-2 py-1 rounded bg-red-50 text-crimson-600 text-[11px] font-bold">✕</button>
+                    </div>
+                </div>
+            `).join('');
+
+            renderAdminCharts();
+        }
+
+        function updateRequestStatus(reqId, newStatus) {
+            const item = appState.requests.find(r => r.id === reqId);
+            if (!item) return;
+            item.status = newStatus;
+            logActivity(`Admin updated Request ${item.refId} status to "${newStatus}".`);
+            persistState();
+            renderAdminDashboard();
+            showToast(`Request ${item.refId} updated to ${newStatus}.`, 'success');
+        }
+
+        function openHospitalEditorModal(hospId = null) {
+            const modalTitle = document.getElementById('hospital-modal-title');
+            if (hospId) {
+                const h = appState.hospitals.find(x => x.id === hospId);
+                if (!h) return;
+                modalTitle.textContent = 'Edit Sample Hospital Record';
+                document.getElementById('edit-hosp-id').value = h.id;
+                document.getElementById('edit-hosp-name').value = h.name;
+                document.getElementById('edit-hosp-area').value = h.area;
+                document.getElementById('edit-hosp-category').value = h.category;
+                document.getElementById('edit-hosp-address').value = h.address;
+                document.getElementById('edit-hosp-phone').value = h.phone;
+                document.getElementById('edit-hosp-lat').value = h.lat;
+                document.getElementById('edit-hosp-lng').value = h.lng;
+            } else {
+                modalTitle.textContent = 'Add Sample Exhibition Hospital';
+                document.getElementById('hospital-editor-form').reset();
+                document.getElementById('edit-hosp-id').value = '';
+                document.getElementById('edit-hosp-lat').value = '19.0760';
+                document.getElementById('edit-hosp-lng').value = '72.8400';
+            }
+            openModal('hospital-editor-modal');
+        }
+
+        function handleSaveHospital(e) {
+            e.preventDefault();
+            const existingId = document.getElementById('edit-hosp-id').value;
+            const hospData = {
+                id: existingId || ('hosp-' + Date.now()),
+                name: document.getElementById('edit-hosp-name').value.trim(),
+                area: document.getElementById('edit-hosp-area').value.trim(),
+                category: document.getElementById('edit-hosp-category').value,
+                address: document.getElementById('edit-hosp-address').value.trim(),
+                phone: document.getElementById('edit-hosp-phone').value.trim(),
+                lat: parseFloat(document.getElementById('edit-hosp-lat').value) || 19.0760,
+                lng: parseFloat(document.getElementById('edit-hosp-lng').value) || 72.8400
+            };
+
+            if (existingId) {
+                const idx = appState.hospitals.findIndex(h => h.id === existingId);
+                if (idx > -1) appState.hospitals[idx] = hospData;
+                logActivity(`Updated sample hospital record: ${hospData.name}.`);
+            } else {
+                appState.hospitals.unshift(hospData);
+                logActivity(`Added new sample hospital record: ${hospData.name}.`);
+            }
+
+            persistState();
+            closeModal('hospital-editor-modal');
+            renderAdminDashboard();
+            renderHomeHospitalPreview();
+            showToast(`Saved sample hospital: ${hospData.name}`, 'success');
+        }
+
+        function deleteHospitalRecord(id) {
+            appState.hospitals = appState.hospitals.filter(h => h.id !== id);
+            persistState();
+            renderAdminDashboard();
+            renderHomeHospitalPreview();
+            showToast('Removed sample hospital record.', 'info');
+        }
+
+        function toggleDonorAvailability(id) {
+            const donor = appState.donors.find(d => d.id === id);
+            if (!donor) return;
+            donor.availability = donor.availability === 'Available' ? 'Recent Donor' : 'Available';
+            persistState();
+            renderAdminDashboard();
+            showToast(`${donor.maskedName} availability set to ${donor.availability}.`, 'info');
+        }
+
+        function deleteDonorRecord(id) {
+            appState.donors = appState.donors.filter(d => d.id !== id);
+            persistState();
+            renderAdminDashboard();
+            showToast('Removed synthetic donor listing.', 'info');
+        }
+
+        function renderAdminCharts() {
+            const catCanvas = document.getElementById('adminCategoryChart');
+            const statusCanvas = document.getElementById('adminStatusChart');
+            if (!catCanvas || !statusCanvas || typeof Chart === 'undefined') return;
+
+            // Aggregate Categories
+            const catCounts = {};
+            appState.requests.forEach(r => {
+                catCounts[r.category] = (catCounts[r.category] || 0) + 1;
+            });
+
+            if (adminCatChartInstance) adminCatChartInstance.destroy();
+            adminCatChartInstance = new Chart(catCanvas, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(catCounts),
+                    datasets: [{
+                        data: Object.values(catCounts),
+                        backgroundColor: ['#0284C7', '#EF4444', '#10B981', '#F59E0B', '#6366F1'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // Aggregate Statuses
+            const statusCounts = {
+                'Pending Review': appState.requests.filter(r => r.status === 'Pending Review').length,
+                'In Progress': appState.requests.filter(r => r.status === 'In Progress').length,
+                'Resolved': appState.requests.filter(r => r.status === 'Resolved').length
+            };
+
+            if (adminStatusChartInstance) adminStatusChartInstance.destroy();
+            adminStatusChartInstance = new Chart(statusCanvas, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        label: 'Requests',
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#F59E0B', '#0284C7', '#10B981'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        /* =========================================================
+           9. SUPABASE RUNTIME CONFIG & UI HELPERS
+           ========================================================= */
+        function saveSupabaseConfig() {
+            const url = document.getElementById('supa-url-input').value.trim();
+            const key = document.getElementById('supa-key-input').value.trim();
+            if (!url || !key) {
+                showToast('Please enter both a valid Supabase Project URL and Public Anon Key.', 'error');
+                return;
+            }
+            try {
+                if (window.supabase) {
+                    appState.supabaseClient = window.supabase.createClient(url, key);
+                    appState.dbMode = 'SUPABASE_LIVE';
+                    document.getElementById('db-mode-label').textContent = 'DB: Supabase Connected';
+                    closeModal('db-config-modal');
+                    showToast('Supabase client initialized! Hybrid sync active.', 'success');
+                }
+            } catch (err) {
+                showToast('Error initializing Supabase client: ' + err.message, 'error');
+            }
+        }
+
+        function useExhibitionLocalMode() {
+            appState.supabaseClient = null;
+            appState.dbMode = 'LOCAL_DEMO';
+            document.getElementById('db-mode-label').textContent = 'DB: Exhibition LocalStorage';
+            closeModal('db-config-modal');
+            showToast('Switched to offline-ready Exhibition LocalStorage mode.', 'info');
+        }
+
+        function updateGlobalMetrics() {
+            const hCount = appState.hospitals.length;
+            const dCount = appState.donors.length;
+            const rCount = appState.requests.length;
+
+            const setTxt = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val;
+            };
+            setTxt('hero-stat-hospitals', hCount);
+            setTxt('hero-stat-donors', dCount);
+            setTxt('metric-hospitals', hCount);
+            setTxt('metric-donors', dCount);
+            setTxt('metric-requests', rCount);
+        }
+
+        function toggleFaq(index) {
+            const body = document.getElementById(`faq-body-${index}`);
+            const icon = document.getElementById(`faq-icon-${index}`);
+            if (!body) return;
+            const isHidden = body.classList.contains('hidden');
+            body.classList.toggle('hidden');
+            if (icon) icon.textContent = isHidden ? '−' : '+';
+        }
+
+        function handleContactSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('contact-name').value.trim();
+            logActivity(`Community inquiry received from ${name}.`);
+            e.target.reset();
+            showToast(`Thank you, ${name}! Your community message has been logged.`, 'success');
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden');
+        }
+
+        function switchCodeTab(tab) {
+            ['sql', 'tree', 'readme'].forEach(t => {
+                document.getElementById(`code-tab-${t}`).classList.toggle('hidden', t !== tab);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (t === tab) {
+                    btn.className = 'px-3 py-2 rounded-t-lg bg-white border border-b-0 border-slate-200 font-bold text-medical-600';
+                } else {
+                    btn.className = 'px-3 py-2 rounded-t-lg text-slate-600 hover:text-navy-900';
+                }
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const colors = {
+                success: 'bg-navy-900 border-emerald-500 text-white',
+                error: 'bg-crimson-600 border-red-300 text-white',
+                info: 'bg-navy-900 border-medical-500 text-white'
+            };
+
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto p-4 rounded-xl shadow-xl border-l-4 ${colors[type] || colors.info} text-xs font-medium flex items-center justify-between gap-3 transition-all duration-300`;
+            toast.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" class="text-slate-300 hover:text-white font-bold">✕</button>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                if (toast.parentElement) toast.remove();
+            }, 4200);
+        }
+
+        function renderAllViews() {
+            updateAuthUI();
+            updateGlobalMetrics();
+            renderHomeHospitalPreview();
+            renderDonors();
+            renderSampleReferencePills();
+        }
+
+        /* =========================================================
+           10. INITIALIZE APPLICATION ON WINDOW LOAD
+           ========================================================= */
+        window.onload = function () {
+            initDataStore();
+            renderAllViews();
+            navigateTo('home');
+        };
+    </script>
+</body>
+</html>
+```
